@@ -10,6 +10,7 @@ import ApiError from "./utils/ApiError.js";
 import authRoutes from "./routes/auth.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import taskRoutes from "./routes/task.routes.js";
+import ticketRoutes from "./routes/ticket.routes.js";
 
 /**
  * Express application factory.
@@ -51,10 +52,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
-
-// TODO: Mount remaining routes in subsequent phases
-//   import ticketRoutes  from "./routes/ticket.routes.js";
-//   app.use("/api/tickets",  ticketRoutes);
+app.use("/api/tickets", ticketRoutes);
 
 // ── 404 Catch-All ────────────────────────────────────
 app.all("*", (req, _res, next) => {
