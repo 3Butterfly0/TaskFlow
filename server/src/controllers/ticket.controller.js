@@ -1,9 +1,9 @@
-import mongoose from "mongoose";
 import Ticket from "../models/Ticket.model.js";
 import Task from "../models/Task.model.js";
 import Project from "../models/Project.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import { emitToProject } from "../config/socket.js";
 
 // ──────────────────────────────────────────────────────
 // POST /api/tickets
@@ -40,6 +40,9 @@ export const createTicket = async (req, res, next) => {
     });
 
     await ticket.populate("reporter", "username email avatar");
+
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(projectId, "ticket.created", { ticket });
 
     res
       .status(201)
@@ -102,8 +105,6 @@ export const getTickets = async (req, res, next) => {
 // Body: { projectId, columnId } — which column to place the new task in
 // ──────────────────────────────────────────────────────
 export const promoteToTask = async (req, res, next) => {
-  const session = await mongoose.startSession();
-
   try {
     const { id } = req.params;
     const { projectId, columnId } = req.body;
@@ -115,7 +116,7 @@ export const promoteToTask = async (req, res, next) => {
     }
 
     // ── Find ticket ───────────────────────────────────
-    const ticket = await Ticket.findById(id).session(session);
+    const ticket = await Ticket.findById(id);
     if (!ticket) {
       throw new ApiError(404, "Ticket not found");
     }
@@ -132,7 +133,7 @@ export const promoteToTask = async (req, res, next) => {
     }
 
     // ── Find project and verify access ────────────────
-    const project = await Project.findById(projectId).session(session);
+    const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
     }
@@ -156,47 +157,36 @@ export const promoteToTask = async (req, res, next) => {
       blocking: "critical",
     };
 
-    // ── Begin transaction ─────────────────────────────
-    session.startTransaction();
-
     // Step 1: Create a Task from ticket data
-    const [task] = await Task.create(
-      [
+    const task = await Task.create({
+      title: ticket.subject,
+      content: ticket.description,
+      priority: severityToPriority[ticket.severity] || "medium",
+      projectId,
+      columnId,
+      assignees: [],
+      activityLog: [
         {
-          title: ticket.subject,
-          content: ticket.description,
-          priority: severityToPriority[ticket.severity] || "medium",
-          projectId,
-          columnId,
-          assignees: [],
-          activityLog: [
-            {
-              type: "task_created",
-              actorId: userId,
-              metadata: {
-                source: "ticket",
-                ticketId: ticket._id.toString(),
-                columnTitle: column.title,
-              },
-            },
-          ],
+          type: "task_created",
+          actorId: userId,
+          metadata: {
+            source: "ticket",
+            ticketId: ticket._id.toString(),
+            columnTitle: column.title,
+          },
         },
       ],
-      { session },
-    );
+    });
 
     // Step 2: Append task ID to column
     column.taskIds.push(task._id.toString());
-    await project.save({ session });
+    await project.save();
 
     // Step 3: Link ticket to task and update status
     ticket.linkedTaskId = task._id;
     ticket.status = "in_progress";
     ticket.triagedBy = userId;
-    await ticket.save({ session });
-
-    // Step 4: Commit transaction
-    await session.commitTransaction();
+    await ticket.save();
 
     // Populate for response
     await ticket.populate([
@@ -204,6 +194,9 @@ export const promoteToTask = async (req, res, next) => {
       { path: "triagedBy", select: "username email avatar" },
       { path: "linkedTaskId", select: "title columnId priority" },
     ]);
+
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(projectId, "ticket.promoted", { ticket, task });
 
     res
       .status(200)
@@ -215,11 +208,6 @@ export const promoteToTask = async (req, res, next) => {
         ),
       );
   } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
     next(error);
-  } finally {
-    session.endSession();
   }
 };

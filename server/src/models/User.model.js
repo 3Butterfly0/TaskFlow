@@ -31,7 +31,6 @@ const userSchema = new mongoose.Schema(
 
     googleId: {
       type: String,
-      sparse: true,
     },
 
     avatar: {
@@ -68,8 +67,8 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-// ── Indexes (per production-blueprint.md §4) ──────────
-userSchema.index({ email: 1 }, { unique: true });
+// `email` index is already created by { unique: true } at the field level.
+// `googleId` needs an explicit sparse index for optional Google OAuth lookups.
 userSchema.index({ googleId: 1 }, { sparse: true });
 
 // ── Pre-save: hash password ───────────────────────────

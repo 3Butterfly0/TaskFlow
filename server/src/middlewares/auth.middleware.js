@@ -1,12 +1,7 @@
 import jwt from "jsonwebtoken";
 import ApiError from "../utils/ApiError.js";
 
-/**
- * Protect middleware – verifies JWT from HttpOnly cookie.
- *
- * On success, attaches `req.user = { id }` for downstream handlers.
- * On failure, throws 401 via ApiError (caught by global error handler).
- */
+// Protect middleware – verifies JWT from HttpOnly cookie.
 const protect = async (req, _res, next) => {
   try {
     // ── Extract token from cookie ─────────────────────

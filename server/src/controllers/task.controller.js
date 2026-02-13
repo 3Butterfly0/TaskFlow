@@ -1,8 +1,8 @@
-import mongoose from "mongoose";
 import Task from "../models/Task.model.js";
 import Project from "../models/Project.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import { emitToProject } from "../config/socket.js";
 
 // ──────────────────────────────────────────────────────
 // POST /api/tasks
@@ -70,6 +70,12 @@ export const createTask = async (req, res, next) => {
 
     // ── Populate references for response ──────────────
     await task.populate("assignees", "username email avatar");
+
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(projectId, "task.created", {
+      task,
+      columnId,
+    });
 
     res
       .status(201)
@@ -154,6 +160,11 @@ export const updateTask = async (req, res, next) => {
     await task.save();
     await task.populate("assignees", "username email avatar");
 
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(task.projectId.toString(), "task.updated", {
+      task,
+    });
+
     res
       .status(200)
       .json(new ApiResponse(200, task, "Task updated successfully"));
@@ -207,6 +218,12 @@ export const reorderInsideColumn = async (req, res, next) => {
     column.taskIds = taskIds;
     await project.save();
 
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(projectId, "task.reordered", {
+      columnId,
+      taskIds,
+    });
+
     res
       .status(200)
       .json(
@@ -238,8 +255,6 @@ export const reorderInsideColumn = async (req, res, next) => {
 //   4. (Emit socket event – future phase)
 // ──────────────────────────────────────────────────────
 export const moveAcrossColumns = async (req, res, next) => {
-  const session = await mongoose.startSession();
-
   try {
     const {
       projectId,
@@ -268,7 +283,7 @@ export const moveAcrossColumns = async (req, res, next) => {
     const userId = req.user.id;
 
     // ── Find project and verify access ────────────────
-    const project = await Project.findById(projectId).session(session);
+    const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
     }
@@ -297,22 +312,17 @@ export const moveAcrossColumns = async (req, res, next) => {
       );
     }
 
-    // ── Begin transaction ─────────────────────────────
-    session.startTransaction();
-
     // Step 1 & 2: Update both column taskIds
     sourceColumn.taskIds = newSourceTaskIds;
     destColumn.taskIds = newDestinationTaskIds;
-    await project.save({ session });
+    await project.save();
 
     // Step 3: Update task.columnId
-    const task = await Task.findById(taskId).session(session);
+    const task = await Task.findById(taskId);
     if (!task) {
-      await session.abortTransaction();
       throw new ApiError(404, "Task not found");
     }
 
-    const previousColumnId = task.columnId;
     task.columnId = destinationColumnId;
 
     // Add activity log entry for the move
@@ -327,35 +337,27 @@ export const moveAcrossColumns = async (req, res, next) => {
       },
     });
 
-    await task.save({ session });
-
-    // Step 4: Commit transaction
-    await session.commitTransaction();
+    await task.save();
 
     // Populate for response
     await task.populate("assignees", "username email avatar");
 
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          task,
-          sourceColumn: { id: sourceColumnId, taskIds: newSourceTaskIds },
-          destinationColumn: {
-            id: destinationColumnId,
-            taskIds: newDestinationTaskIds,
-          },
-        },
-        "Task moved successfully",
-      ),
-    );
+    const responseData = {
+      task,
+      sourceColumn: { id: sourceColumnId, taskIds: newSourceTaskIds },
+      destinationColumn: {
+        id: destinationColumnId,
+        taskIds: newDestinationTaskIds,
+      },
+    };
+
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(projectId, "task.moved", responseData);
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, responseData, "Task moved successfully"));
   } catch (error) {
-    // Abort transaction if still active
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
     next(error);
-  } finally {
-    session.endSession();
   }
 };

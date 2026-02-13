@@ -1,8 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import { createServer } from "http";
 import app from "./app.js";
 import connectDB from "./config/db.js";
+import { initializeSocket } from "./config/socket.js";
 import logger from "./utils/logger.js";
 
 const PORT = process.env.PORT || 5000;
@@ -10,7 +12,9 @@ const PORT = process.env.PORT || 5000;
 /**
  * Bootstrap sequence:
  *   1. Connect to MongoDB
- *   2. Start Express server
+ *   2. Create HTTP server (shared by Express + Socket.io)
+ *   3. Initialize Socket.io on the HTTP server
+ *   4. Start listening
  *
  * Uncaught exceptions and unhandled rejections are logged and cause
  * a graceful shutdown so the process manager can restart the service.
@@ -19,8 +23,14 @@ const startServer = async () => {
   // 1. Database
   await connectDB();
 
-  // 2. HTTP server
-  const server = app.listen(PORT, () => {
+  // 2. HTTP server (wraps Express app so Socket.io can share the same port)
+  const httpServer = createServer(app);
+
+  // 3. Socket.io
+  initializeSocket(httpServer);
+
+  // 4. Listen
+  httpServer.listen(PORT, () => {
     logger.info(
       `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
     );
@@ -29,7 +39,7 @@ const startServer = async () => {
   // ── Graceful shutdown helpers ──────────────────────
   const shutdown = (signal) => {
     logger.info(`${signal} received – shutting down gracefully…`);
-    server.close(() => {
+    httpServer.close(() => {
       logger.info("HTTP server closed");
       process.exit(0);
     });
