@@ -1,16 +1,16 @@
 import { useParams } from "react-router-dom";
 
-const Tickets = () => {
+const Team = () => {
   const { projectId } = useParams();
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Tickets</h1>
+      <h1 className="text-2xl font-bold text-white">Team</h1>
       <p className="mt-2 text-slate-400">
-        Triage dashboard for project: {projectId}
+        Team members for project: {projectId}
       </p>
     </div>
   );
 };
 
-export default Tickets;
+export default Team;
