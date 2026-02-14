@@ -2,6 +2,17 @@ import { baseApi } from "../../app/baseApi";
 
 export const taskApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getTasksByProject: builder.query({
+      query: (projectId) => `/tasks?projectId=${projectId}`,
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...result.data.map(({ _id }) => ({ type: "Task", id: _id })),
+              { type: "Task", id: "LIST" },
+            ]
+          : [{ type: "Task", id: "LIST" }],
+    }),
+
     createTask: builder.mutation({
       query: (body) => ({
         url: "/tasks",
@@ -46,6 +57,7 @@ export const taskApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetTasksByProjectQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useReorderColumnMutation,

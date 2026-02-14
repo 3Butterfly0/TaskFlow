@@ -5,6 +5,49 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { emitToProject } from "../config/socket.js";
 
 // ──────────────────────────────────────────────────────
+// GET /api/tasks?projectId=xxx
+// Returns all tasks for a project (used by board rendering)
+//
+// Per production-blueprint.md §2:
+//   Board = Project.columns (order) + Tasks (data)
+//   Compound index { projectId, columnId } accelerates this query
+// ──────────────────────────────────────────────────────
+export const getTasksByProject = async (req, res, next) => {
+  try {
+    const { projectId } = req.query;
+
+    if (!projectId) {
+      throw new ApiError(400, "projectId query parameter is required");
+    }
+
+    // ── Access check ───────────────────────────────────
+    const project = await Project.findById(projectId);
+    if (!project) {
+      throw new ApiError(404, "Project not found");
+    }
+
+    const userId = req.user.id;
+    const isOwner = project.owner.toString() === userId;
+    const isMember = project.members.some((m) => m.toString() === userId);
+
+    if (!isOwner && !isMember) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
+    // ── Fetch tasks ────────────────────────────────────
+    const tasks = await Task.find({ projectId })
+      .populate("assignees", "username email avatar")
+      .lean();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
 // POST /api/tasks
 // Creates a task and appends its ID to the target column
 // ──────────────────────────────────────────────────────
