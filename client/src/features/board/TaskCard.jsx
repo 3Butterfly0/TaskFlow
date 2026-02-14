@@ -1,10 +1,12 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
 /**
  * Task card rendered inside a board column.
+ * Uses @dnd-kit/sortable to be draggable and reorderable.
  *
  * Per prd.md §3.5 – Task card displays:
  *   title, priority, assignees, dueDate
- *
- * No drag-and-drop yet — that comes in a later phase.
  */
 
 const priorityColors = {
@@ -21,13 +23,56 @@ const priorityLabels = {
   critical: "Critical",
 };
 
-const TaskCard = ({ task }) => {
+const TaskCard = ({ task, isDragOverlay = false }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task._id,
+    data: {
+      type: "task",
+      task,
+      columnId: task.columnId,
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   const subtasksDone = task.subtasks?.filter((s) => s.isCompleted).length || 0;
   const subtasksTotal = task.subtasks?.length || 0;
   const hasSubtasks = subtasksTotal > 0;
 
+  if (isDragging && !isDragOverlay) {
+    // Placeholder while dragging — keeps space in the column
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="rounded-lg border-2 border-dashed border-indigo-500/30 bg-indigo-500/5 p-3.5 opacity-40"
+      >
+        <div className="h-4 w-3/4 rounded bg-slate-800/30" />
+        <div className="mt-2 h-3 w-1/2 rounded bg-slate-800/20" />
+      </div>
+    );
+  }
+
   return (
-    <div className="group rounded-lg border border-slate-800 bg-slate-950 p-3.5 transition-colors hover:border-slate-700">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`group cursor-grab rounded-lg border border-slate-800 bg-slate-950 p-3.5 transition-colors hover:border-slate-700 active:cursor-grabbing ${
+        isDragOverlay ? "rotate-2 shadow-2xl shadow-black/50 ring-2 ring-indigo-500/50" : ""
+      }`}
+    >
       {/* ── Labels ──────────────────────────────── */}
       {task.labels?.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">

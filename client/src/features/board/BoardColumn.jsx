@@ -1,7 +1,12 @@
+import { useDroppable } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import TaskCard from "./TaskCard";
 
 /**
- * A single board column rendering its ordered tasks.
+ * A single board column with sortable task list.
  *
  * Per production-blueprint.md §2:
  *   Column defines order via taskIds array.
@@ -17,8 +22,21 @@ const BoardColumn = ({ column, taskMap }) => {
     .map((id) => taskMap[id])
     .filter(Boolean);
 
+  // Make the column a droppable zone (for dropping into empty columns)
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-${column.id}`,
+    data: {
+      type: "column",
+      columnId: column.id,
+    },
+  });
+
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col rounded-xl bg-slate-900/50 border border-slate-800">
+    <div
+      className={`flex h-full w-72 shrink-0 flex-col rounded-xl bg-slate-900/50 border transition-colors ${
+        isOver ? "border-indigo-500/50 bg-indigo-500/5" : "border-slate-800"
+      }`}
+    >
       {/* ── Column header ──────────────────────── */}
       <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
         <div className="flex items-center gap-2">
@@ -31,17 +49,22 @@ const BoardColumn = ({ column, taskMap }) => {
         </div>
       </div>
 
-      {/* ── Task list ──────────────────────────── */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-2">
-        {tasks.length === 0 && (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 py-8">
-            <p className="text-xs text-slate-500">No tasks</p>
-          </div>
-        )}
+      {/* ── Task list (sortable) ───────────────── */}
+      <div ref={setNodeRef} className="flex-1 space-y-2 overflow-y-auto p-2 min-h-[60px]">
+        <SortableContext
+          items={column.taskIds || []}
+          strategy={verticalListSortingStrategy}
+        >
+          {tasks.length === 0 && (
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 py-8">
+              <p className="text-xs text-slate-500">No tasks</p>
+            </div>
+          )}
 
-        {tasks.map((task) => (
-          <TaskCard key={task._id} task={task} />
-        ))}
+          {tasks.map((task) => (
+            <TaskCard key={task._id} task={task} />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );

@@ -93,6 +93,7 @@ const Board = () => {
           <BoardContainer
             columns={project.columns || []}
             tasks={tasks}
+            projectId={projectId}
           />
         </div>
       )}
