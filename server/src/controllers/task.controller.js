@@ -48,6 +48,111 @@ export const getTasksByProject = async (req, res, next) => {
 };
 
 // ──────────────────────────────────────────────────────
+// GET /api/tasks/:id
+// Returns a single task with populated references
+// (used by task drawer / detail view)
+// ──────────────────────────────────────────────────────
+export const getTaskById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const task = await Task.findById(id)
+      .populate("assignees", "username email avatar")
+      .populate("comments.user", "username email avatar");
+
+    if (!task) {
+      throw new ApiError(404, "Task not found");
+    }
+
+    // ── Access check ───────────────────────────────────
+    const project = await Project.findById(task.projectId);
+    if (!project) {
+      throw new ApiError(404, "Associated project not found");
+    }
+
+    const isOwner = project.owner.toString() === userId;
+    const isMember = project.members.some((m) => m.toString() === userId);
+    if (!isOwner && !isMember) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, task, "Task fetched successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// POST /api/tasks/:id/comments
+// Add a comment to a task (embedded sub-document)
+//
+// Per architecture.md §4:
+//   Comment (embedded) – small list, suitable for embedding
+// Per production-blueprint.md §5 – structured activity log
+// ──────────────────────────────────────────────────────
+export const addComment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      throw new ApiError(400, "Comment text is required");
+    }
+
+    const task = await Task.findById(id);
+    if (!task) {
+      throw new ApiError(404, "Task not found");
+    }
+
+    // ── Access check ───────────────────────────────────
+    const project = await Project.findById(task.projectId);
+    if (!project) {
+      throw new ApiError(404, "Associated project not found");
+    }
+
+    const isOwner = project.owner.toString() === userId;
+    const isMember = project.members.some((m) => m.toString() === userId);
+    if (!isOwner && !isMember) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
+    // ── Push comment ───────────────────────────────────
+    task.comments.push({
+      text: text.trim(),
+      user: userId,
+    });
+
+    // ── Activity log ───────────────────────────────────
+    task.activityLog.push({
+      type: "comment_added",
+      actorId: userId,
+      metadata: { preview: text.trim().slice(0, 80) },
+    });
+
+    await task.save();
+    await task.populate("comments.user", "username email avatar");
+
+    const newComment = task.comments[task.comments.length - 1];
+
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(task.projectId.toString(), "comment.added", {
+      taskId: id,
+      comment: newComment,
+    });
+
+    res
+      .status(201)
+      .json(new ApiResponse(201, newComment, "Comment added successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
 // POST /api/tasks
 // Creates a task and appends its ID to the target column
 // ──────────────────────────────────────────────────────

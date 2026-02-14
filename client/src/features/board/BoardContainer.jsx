@@ -16,27 +16,17 @@ import { useReorderColumnMutation, useMoveTaskMutation } from "../tasks/taskApi"
 /**
  * Board container with @dnd-kit drag-and-drop + optimistic UI.
  *
- * Per production-blueprint.md §6:
- *   Reorder inside column:  { projectId, columnId, taskIds }
- *   Move across columns:    { projectId, taskId, sourceColumnId,
- *                              destinationColumnId, newSourceTaskIds,
- *                              newDestinationTaskIds }
- *
- * Per prd.md §3.4 – Optimistic UI:
- *   Card snaps instantly → rollback on API failure
- *
  * Props:
- *   columns   – array of { id, title, taskIds } from the project
- *   tasks     – flat array of task documents
- *   projectId – current project ID
+ *   columns    – array of { id, title, taskIds } from the project
+ *   tasks      – flat array of task documents
+ *   projectId  – current project ID
+ *   onOpenTask – callback when a card is clicked
  */
-const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
+const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }) => {
   const [reorderColumn] = useReorderColumnMutation();
   const [moveTask] = useMoveTaskMutation();
 
   // ── Optimistic column state ────────────────────────
-  // We keep a local copy so drag operations are instant.
-  // On API failure, we rollback to the server state.
   const [optimisticColumns, setOptimisticColumns] = useState(null);
   const columns = optimisticColumns || serverColumns;
 
@@ -59,23 +49,17 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
   // ── Active drag state ──────────────────────────────
   const [activeTask, setActiveTask] = useState(null);
 
+  // ── Drag origin ref ────────────────────────────────
+  // Captures the source column ID at drag start.
+  // This is the SINGLE SOURCE OF TRUTH for where the task
+  // originally lived — never changes during the drag.
+  const dragOriginRef = useRef(null);
+
   // ── Sensors ────────────────────────────────────────
-  // PointerSensor with a 5px activation distance prevents
-  // accidental drags when clicking on cards.
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
     })
-  );
-
-  // ── Helper: find which column a task lives in ──────
-  const findColumnByTaskId = useCallback(
-    (taskId) => {
-      return columns.find((col) =>
-        (col.taskIds || []).includes(taskId)
-      );
-    },
-    [columns]
   );
 
   // ── onDragStart ────────────────────────────────────
@@ -83,43 +67,60 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
     (event) => {
       const { active } = event;
       const task = taskMap[active.id];
-      if (task) setActiveTask(task);
+      if (!task) return;
+
+      setActiveTask(task);
+
+      // Record which column this task is dragged FROM
+      // using SERVER state (the truth before any optimism)
+      const sourceCol = serverColumns.find((col) =>
+        (col.taskIds || []).includes(active.id)
+      );
+      dragOriginRef.current = {
+        taskId: active.id,
+        sourceColumnId: sourceCol?.id || null,
+        sourceTaskIds: sourceCol ? [...sourceCol.taskIds] : [],
+      };
     },
-    [taskMap]
+    [taskMap, serverColumns]
   );
 
   // ── onDragOver ─────────────────────────────────────
-  // This fires continuously as the user drags over items.
-  // We use it to optimistically move cards across columns
-  // so the visual feedback is instant.
+  // Fires continuously. We use it for visual feedback only
+  // (optimistically moving the card across columns).
   const handleDragOver = useCallback(
     (event) => {
       const { active, over } = event;
-      if (!over) return;
+      if (!over || !dragOriginRef.current) return;
 
       const activeId = active.id;
       const overId = over.id;
       if (activeId === overId) return;
 
-      const activeColumn = findColumnByTaskId(activeId);
-      if (!activeColumn) return;
-
-      // Determine the target column:
-      // If hovering over a column droppable, use that column.
-      // If hovering over a task, find which column that task is in.
-      let overColumn;
-      if (String(overId).startsWith("column-")) {
-        const colId = String(overId).replace("column-", "");
-        overColumn = columns.find((c) => c.id === colId);
-      } else {
-        overColumn = findColumnByTaskId(overId);
-      }
-
-      if (!overColumn || activeColumn.id === overColumn.id) return;
-
-      // Cross-column move (optimistic)
       setOptimisticColumns((prev) => {
-        const cols = (prev || serverColumns).map((col) => ({
+        const currentCols = prev || serverColumns;
+
+        // Find which column currently has the task in optimistic state
+        const activeColumn = currentCols.find((c) =>
+          (c.taskIds || []).includes(activeId)
+        );
+        if (!activeColumn) return prev;
+
+        // Determine target column
+        let overColumn;
+        if (String(overId).startsWith("column-")) {
+          const colId = String(overId).replace("column-", "");
+          overColumn = currentCols.find((c) => c.id === colId);
+        } else {
+          overColumn = currentCols.find((c) =>
+            (c.taskIds || []).includes(overId)
+          );
+        }
+
+        if (!overColumn || activeColumn.id === overColumn.id) return prev;
+
+        // Deep-clone columns so we don't mutate state
+        const cols = currentCols.map((col) => ({
           ...col,
           taskIds: [...(col.taskIds || [])],
         }));
@@ -128,13 +129,13 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
         const destCol = cols.find((c) => c.id === overColumn.id);
 
         // Remove from source
-        const srcIdx = srcCol.taskIds.indexOf(activeId);
-        if (srcIdx === -1) return prev;
-        srcCol.taskIds.splice(srcIdx, 1);
+        srcCol.taskIds = srcCol.taskIds.filter((id) => id !== activeId);
 
-        // Insert into destination at the position of the over item
+        // Remove from destination too (prevent duplicates if dragOver fires multiple times)
+        destCol.taskIds = destCol.taskIds.filter((id) => id !== activeId);
+
+        // Insert into destination
         if (String(overId).startsWith("column-")) {
-          // Dropped on column itself → append to end
           destCol.taskIds.push(activeId);
         } else {
           const overIdx = destCol.taskIds.indexOf(overId);
@@ -148,19 +149,19 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
         return cols;
       });
     },
-    [columns, findColumnByTaskId, serverColumns]
+    [serverColumns]
   );
 
   // ── onDragEnd ──────────────────────────────────────
-  // Fires when the user drops. We finalize the optimistic
-  // state and send the API call. On failure → rollback.
   const handleDragEnd = useCallback(
     async (event) => {
       const { active, over } = event;
       setActiveTask(null);
 
-      if (!over) {
-        // Dropped outside – rollback
+      const origin = dragOriginRef.current;
+      dragOriginRef.current = null;
+
+      if (!over || !origin) {
         setOptimisticColumns(null);
         return;
       }
@@ -168,43 +169,35 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
       const activeId = active.id;
       const overId = over.id;
 
-      const activeColumn = findColumnByTaskId(activeId);
-      if (!activeColumn) {
+      // Use the current optimistic state for final column arrays
+      const currentCols = optimisticColumns || serverColumns;
+
+      // Find where the task currently sits in optimistic state
+      const currentColumn = currentCols.find((c) =>
+        (c.taskIds || []).includes(activeId)
+      );
+
+      if (!currentColumn) {
         setOptimisticColumns(null);
         return;
       }
 
-      // Determine target column
-      let overColumn;
-      if (String(overId).startsWith("column-")) {
-        const colId = String(overId).replace("column-", "");
-        overColumn = columns.find((c) => c.id === colId);
-      } else {
-        overColumn = findColumnByTaskId(overId);
-      }
-
-      if (!overColumn) {
-        setOptimisticColumns(null);
-        return;
-      }
-
-      // Snapshot for rollback
-      const rollbackColumns = serverColumns;
-
-      if (activeColumn.id === overColumn.id) {
+      if (currentColumn.id === origin.sourceColumnId) {
         // ── Same column reorder ────────────────────
-        const colTaskIds = [...activeColumn.taskIds];
-        const oldIdx = colTaskIds.indexOf(activeId);
+        const colTaskIds = [...currentColumn.taskIds];
+        const oldIdx = origin.sourceTaskIds.indexOf(activeId);
         const newIdx = colTaskIds.indexOf(overId);
 
-        if (oldIdx === newIdx || oldIdx === -1) return;
+        if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) {
+          setOptimisticColumns(null);
+          return;
+        }
 
-        const newTaskIds = arrayMove(colTaskIds, oldIdx, newIdx);
+        const newTaskIds = arrayMove([...origin.sourceTaskIds], oldIdx, newIdx);
 
-        // Optimistic update
-        setOptimisticColumns((prev) =>
-          (prev || serverColumns).map((col) =>
-            col.id === activeColumn.id
+        setOptimisticColumns(
+          currentCols.map((col) =>
+            col.id === currentColumn.id
               ? { ...col, taskIds: newTaskIds }
               : col
           )
@@ -213,55 +206,51 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
         try {
           await reorderColumn({
             projectId,
-            columnId: activeColumn.id,
+            columnId: currentColumn.id,
             taskIds: newTaskIds,
           }).unwrap();
         } catch {
-          // Rollback on failure
           setOptimisticColumns(null);
         }
       } else {
         // ── Cross-column move ──────────────────────
-        // optimisticColumns already has the correct state
-        // from handleDragOver. We just need to send the API call.
-        const currentCols = optimisticColumns || columns;
-        const srcCol = currentCols.find((c) => c.id === activeColumn.id);
-        const destCol = currentCols.find((c) => c.id === overColumn.id);
+        // Source = where the task was in server state (origin ref)
+        // Destination = where optimistic state placed the task
 
-        // Handle edge case: srcCol & destCol might have been
-        // swapped during dragOver - find them based on where
-        // the task currently sits in optimistic state
-        const actualDestCol = currentCols.find((c) =>
-          (c.taskIds || []).includes(activeId)
-        );
-        const actualSrcCol = currentCols.find(
-          (c) => c.id !== actualDestCol?.id &&
-          rollbackColumns.find((rc) => rc.id === c.id)?.taskIds?.includes(activeId)
+        // Build clean source taskIds (task removed)
+        const newSourceTaskIds = origin.sourceTaskIds.filter(
+          (id) => id !== activeId
         );
 
-        const finalSrcCol = actualSrcCol || srcCol;
-        const finalDestCol = actualDestCol || destCol;
+        // Build clean destination taskIds (task included, no duplicates)
+        const newDestTaskIds = (currentColumn.taskIds || []).filter(
+          (id) => id !== activeId
+        );
+        // Re-insert at the correct position
+        const insertIdx = (currentColumn.taskIds || []).indexOf(activeId);
+        if (insertIdx >= 0) {
+          newDestTaskIds.splice(insertIdx, 0, activeId);
+        } else {
+          newDestTaskIds.push(activeId);
+        }
 
         try {
           await moveTask({
             projectId,
             taskId: activeId,
-            sourceColumnId: finalSrcCol.id,
-            destinationColumnId: finalDestCol.id,
-            newSourceTaskIds: finalSrcCol.taskIds || [],
-            newDestinationTaskIds: finalDestCol.taskIds || [],
+            sourceColumnId: origin.sourceColumnId,
+            destinationColumnId: currentColumn.id,
+            newSourceTaskIds,
+            newDestinationTaskIds: newDestTaskIds,
           }).unwrap();
         } catch {
-          // Rollback on failure
           setOptimisticColumns(null);
         }
       }
     },
     [
-      columns,
       optimisticColumns,
       serverColumns,
-      findColumnByTaskId,
       projectId,
       reorderColumn,
       moveTask,
@@ -278,7 +267,7 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId }) => {
     >
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
-          <BoardColumn key={column.id} column={column} taskMap={taskMap} />
+          <BoardColumn key={column.id} column={column} taskMap={taskMap} onOpen={onOpenTask} />
         ))}
       </div>
 

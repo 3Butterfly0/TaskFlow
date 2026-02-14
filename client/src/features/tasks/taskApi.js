@@ -13,6 +13,11 @@ export const taskApi = baseApi.injectEndpoints({
           : [{ type: "Task", id: "LIST" }],
     }),
 
+    getTaskById: builder.query({
+      query: (id) => `/tasks/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Task", id }],
+    }),
+
     createTask: builder.mutation({
       query: (body) => ({
         url: "/tasks",
@@ -31,7 +36,21 @@ export const taskApi = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: "Task", id }],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Task", id },
+        { type: "Task", id: "LIST" },
+      ],
+    }),
+
+    addComment: builder.mutation({
+      query: ({ taskId, text }) => ({
+        url: `/tasks/${taskId}/comments`,
+        method: "POST",
+        body: { text },
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: "Task", id: taskId },
+      ],
     }),
 
     reorderColumn: builder.mutation({
@@ -58,8 +77,10 @@ export const taskApi = baseApi.injectEndpoints({
 
 export const {
   useGetTasksByProjectQuery,
+  useGetTaskByIdQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
+  useAddCommentMutation,
   useReorderColumnMutation,
   useMoveTaskMutation,
 } = taskApi;

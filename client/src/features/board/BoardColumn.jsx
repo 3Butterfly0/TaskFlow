@@ -16,7 +16,7 @@ import TaskCard from "./TaskCard";
  *   column  – { id, title, taskIds }
  *   taskMap – Map<taskId, taskDoc>
  */
-const BoardColumn = ({ column, taskMap }) => {
+const BoardColumn = ({ column, taskMap, onOpen }) => {
   // Resolve taskIds to actual task documents, preserving order
   const tasks = (column.taskIds || [])
     .map((id) => taskMap[id])
@@ -62,7 +62,7 @@ const BoardColumn = ({ column, taskMap }) => {
           )}
 
           {tasks.map((task) => (
-            <TaskCard key={task._id} task={task} />
+            <TaskCard key={task._id} task={task} onOpen={onOpen} />
           ))}
         </SortableContext>
       </div>

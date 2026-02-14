@@ -1,7 +1,9 @@
+import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useGetProjectByIdQuery } from "../features/projects/projectApi";
 import { useGetTasksByProjectQuery } from "../features/tasks/taskApi";
 import BoardContainer from "../features/board/BoardContainer";
+import TaskDrawer from "../features/tasks/TaskDrawer";
 
 /* ── Loading skeleton ──────────────────────────────── */
 const BoardSkeleton = () => (
@@ -57,6 +59,17 @@ const Board = () => {
   const tasks = tasksData?.data || [];
   const isLoading = isProjectLoading || isTasksLoading;
 
+  // ── Task drawer state ──────────────────────────────
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+  const handleOpenTask = useCallback((taskId) => {
+    setSelectedTaskId(taskId);
+  }, []);
+
+  const handleCloseDrawer = useCallback(() => {
+    setSelectedTaskId(null);
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
       {/* ── Page header ─────────────────────────── */}
@@ -94,9 +107,18 @@ const Board = () => {
             columns={project.columns || []}
             tasks={tasks}
             projectId={projectId}
+            onOpenTask={handleOpenTask}
           />
         </div>
       )}
+
+      {/* ── Task drawer ─────────────────────────── */}
+      <TaskDrawer
+        taskId={selectedTaskId}
+        isOpen={!!selectedTaskId}
+        onClose={handleCloseDrawer}
+        projectMembers={project?.members || []}
+      />
     </div>
   );
 };

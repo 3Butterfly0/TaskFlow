@@ -1,8 +1,10 @@
 import { Router } from "express";
 import {
   getTasksByProject,
+  getTaskById,
   createTask,
   updateTask,
+  addComment,
   reorderInsideColumn,
   moveAcrossColumns,
 } from "../controllers/task.controller.js";
@@ -22,6 +24,10 @@ router.patch("/move", moveAcrossColumns);
 
 // ── Task CRUD ────────────────────────────────────────
 router.post("/", createTask);
+router.get("/:id", getTaskById);
 router.patch("/:id", updateTask);
+
+// ── Comments ─────────────────────────────────────────
+router.post("/:id/comments", addComment);
 
 export default router;
