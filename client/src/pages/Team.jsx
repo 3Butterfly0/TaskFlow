@@ -9,6 +9,9 @@ import {
 } from "../features/team/teamApi";
 import InviteMemberModal from "../features/team/InviteMemberModal";
 import useSocket from "../hooks/useSocket";
+import { Users, AlertTriangle, Search, UserPlus } from "lucide-react";
+import { Skeleton } from "../components/ui/Skeleton";
+import EmptyState from "../components/ui/EmptyState";
 
 /* ═══════════════════════════════════════════════════════
    Role badge config
@@ -314,12 +317,27 @@ const Team = () => {
   }, [members, searchQuery]);
 
   // ── Loading state ──────────────────────────────────
+  // ── Loading state ──────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-slate-700 border-t-indigo-500" />
-          <p className="text-sm text-slate-500">Loading team…</p>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex justify-between">
+          <div>
+            <Skeleton className="h-8 w-32 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
         </div>
       </div>
     );
@@ -329,11 +347,12 @@ const Team = () => {
   if (isError) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-6 py-4 text-center">
-          <p className="text-sm text-red-400">
-            {error?.data?.message || "Failed to load team members"}
-          </p>
-        </div>
+         <EmptyState
+           icon={AlertTriangle}
+           title="Failed to load team"
+           description={error?.data?.message || "We couldn't fetch the team members."}
+           className="border-red-500/20 bg-red-950/10"
+         />
       </div>
     );
   }
@@ -355,12 +374,7 @@ const Team = () => {
             id="invite-member-btn"
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-600/30"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <line x1="19" y1="8" x2="19" y2="14" />
-              <line x1="22" y1="11" x2="16" y2="11" />
-            </svg>
+            <UserPlus className="size-4" />
             Invite Member
           </button>
         )}
@@ -371,19 +385,7 @@ const Team = () => {
 
       {/* ── Search ──────────────────────────────────── */}
       <div className="relative">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
         <input
           type="text"
           value={searchQuery}
@@ -396,23 +398,13 @@ const Team = () => {
       {/* ── Members list ────────────────────────────── */}
       <div className="space-y-2">
         {filteredMembers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-slate-800/50 mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="size-7 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-slate-400">
-              {searchQuery ? "No members match your search" : "No team members yet"}
-            </p>
-            <p className="mt-1 text-xs text-slate-600">
-              {searchQuery
-                ? "Try a different search term"
-                : "Invite collaborators to get started"}
-            </p>
+          <div className="py-8">
+            <EmptyState
+              icon={Users}
+              title={searchQuery ? "No members match" : "No team members yet"}
+              description={searchQuery ? "Try a different search term" : "Invite collaborators to get started"}
+              className="border-none bg-transparent"
+            />
           </div>
         ) : (
           filteredMembers.map((member) => (

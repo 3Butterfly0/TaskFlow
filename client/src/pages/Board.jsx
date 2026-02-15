@@ -5,35 +5,35 @@ import { useGetTasksByProjectQuery } from "../features/tasks/taskApi";
 import BoardContainer from "../features/board/BoardContainer";
 import TaskDrawer from "../features/tasks/TaskDrawer";
 
+import { AlertTriangle, Kanban } from "lucide-react";
+import { Skeleton } from "../components/ui/Skeleton";
+import EmptyState from "../components/ui/EmptyState";
+
 /* ── Loading skeleton ──────────────────────────────── */
 const BoardSkeleton = () => (
-  <div className="flex gap-4">
+  <div className="flex gap-4 overflow-hidden">
     {Array.from({ length: 3 }).map((_, i) => (
       <div
         key={i}
-        className="w-72 shrink-0 rounded-xl border border-slate-800 bg-slate-900/50"
+        className="w-72 shrink-0 rounded-xl border border-slate-800 bg-slate-900/30"
       >
-        {/* Column header skeleton */}
         <div className="border-b border-slate-800 px-4 py-3">
-          <div className="h-4 w-24 animate-pulse rounded bg-slate-800" />
+          <Skeleton className="h-4 w-24" />
         </div>
-        {/* Card skeletons */}
-        <div className="space-y-2 p-2">
-          {Array.from({ length: i === 0 ? 3 : i === 1 ? 2 : 1 }).map(
-            (_, j) => (
-              <div
-                key={j}
-                className="animate-pulse rounded-lg border border-slate-800 bg-slate-950 p-3.5"
-              >
-                <div className="mb-2 h-3 w-3/4 rounded bg-slate-800" />
-                <div className="mb-3 h-3 w-1/2 rounded bg-slate-800/60" />
-                <div className="flex justify-between">
-                  <div className="h-4 w-12 rounded bg-slate-800/40" />
-                  <div className="h-5 w-5 rounded-full bg-slate-800/40" />
-                </div>
+        <div className="p-3 space-y-3">
+          {Array.from({ length: i === 0 ? 3 : i === 1 ? 2 : 1 }).map((_, j) => (
+            <div
+              key={j}
+              className="rounded-lg border border-slate-800 bg-slate-950 p-3.5 space-y-2"
+            >
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-1/2 opacity-60" />
+              <div className="flex justify-between mt-2">
+                <Skeleton className="h-4 w-8 rounded-full" />
+                <Skeleton className="size-5 rounded-full" />
               </div>
-            )
-          )}
+            </div>
+          ))}
         </div>
       </div>
     ))}
@@ -77,7 +77,7 @@ const Board = () => {
         <div>
           <h1 className="text-2xl font-bold text-white">
             {isLoading ? (
-              <div className="h-7 w-48 animate-pulse rounded bg-slate-800" />
+              <Skeleton className="h-8 w-48 bg-slate-800/80" />
             ) : (
               project?.name || "Board"
             )}
@@ -92,8 +92,16 @@ const Board = () => {
 
       {/* ── Error state ─────────────────────────── */}
       {isProjectError && (
-        <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
-          {projectError?.data?.message || "Failed to load board"}
+        <div className="flex flex-1 items-center justify-center p-8">
+          <EmptyState
+            icon={AlertTriangle}
+            title="Unable to load board"
+            description={
+              projectError?.data?.message ||
+              "There was an error loading the project board."
+            }
+            className="w-full max-w-md border-red-500/20 bg-red-950/10"
+          />
         </div>
       )}
 
@@ -101,16 +109,27 @@ const Board = () => {
       {isLoading && <BoardSkeleton />}
 
       {/* ── Board ───────────────────────────────── */}
-      {!isLoading && !isProjectError && project && (
-        <div className="flex-1 overflow-hidden">
-          <BoardContainer
-            columns={project.columns || []}
-            tasks={tasks}
-            projectId={projectId}
-            onOpenTask={handleOpenTask}
-          />
-        </div>
-      )}
+      {/* ── Board ───────────────────────────────── */}
+      {!isLoading && !isProjectError && project ? (
+        project.columns?.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center p-8">
+             <EmptyState
+               icon={Kanban}
+               title="Ready to organize?"
+               description="This board is empty. Add columns to get started."
+             />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <BoardContainer
+              columns={project.columns}
+              tasks={tasks}
+              projectId={projectId}
+              onOpenTask={handleOpenTask}
+            />
+          </div>
+        )
+      ) : null}
 
       {/* ── Task drawer ─────────────────────────── */}
       <TaskDrawer
