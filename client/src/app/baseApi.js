@@ -17,6 +17,6 @@ export const baseApi = createApi({
     baseUrl: "/api",
     credentials: "include", // send cookies with every request
   }),
-  tagTypes: ["User", "Project", "Task", "Ticket"],
+  tagTypes: ["User", "Project", "Task", "Ticket", "Member"],
   endpoints: () => ({}), // injected by feature slices
 });
