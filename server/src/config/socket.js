@@ -79,6 +79,8 @@ export const initializeSocket = (httpServer) => {
     socket.on("setup", (userId) => {
       socket.userId = userId;
 
+      socket.join(userId);
+
       // Track presence
       if (!onlineUsers.has(userId)) {
         onlineUsers.set(userId, new Set());

@@ -8,6 +8,7 @@ import {
   useTransferOwnershipMutation,
 } from "../features/team/teamApi";
 import InviteMemberModal from "../features/team/InviteMemberModal";
+import useSocket from "../hooks/useSocket";
 
 /* ═══════════════════════════════════════════════════════
    Role badge config
@@ -244,6 +245,7 @@ const ConfirmDialog = ({ isOpen, title, message, confirmLabel, confirmColor, onC
 const Team = () => {
   const { projectId } = useParams();
   const currentUser = useSelector(selectCurrentUser);
+  const { onlineUsersMap } = useSocket();
 
   const {
     data: membersData,
@@ -259,7 +261,15 @@ const Team = () => {
   const [removeTarget, setRemoveTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(null);
 
-  const members = membersData?.data || [];
+  const members = useMemo(() => {
+    if (!membersData?.data) return [];
+    const onlineUsers = onlineUsersMap[projectId] || [];
+    return membersData.data.map((m) => ({
+      ...m,
+      isOnline: onlineUsers.includes(m._id) || m._id === currentUser?._id,
+    }));
+  }, [membersData, onlineUsersMap, projectId, currentUser]);
+
   const isOwner = members.some(
     (m) => m._id === currentUser?._id && m.role === "admin"
   );

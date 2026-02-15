@@ -140,6 +140,7 @@ export const addComment = async (req, res, next) => {
 
     // ── Emit socket event (after DB success) ──────────
     emitToProject(task.projectId.toString(), "comment.added", {
+      projectId: task.projectId,
       taskId: id,
       comment: newComment,
     });

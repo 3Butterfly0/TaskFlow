@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { useGetMeQuery, useLogoutMutation } from "../../features/auth/authApi";
 import { clearCredentials } from "../../features/auth/authSlice";
 import { baseApi } from "../../app/baseApi";
+import NotificationBell from "./NotificationBell";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const Header = () => {
 
       {/* ── Right: user info + logout ──────────── */}
       <div className="flex items-center gap-4">
+        {user && <NotificationBell />}
         {user ? (
           <>
             <div className="flex items-center gap-2.5">

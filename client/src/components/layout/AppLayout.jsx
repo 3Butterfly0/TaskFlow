@@ -1,4 +1,6 @@
-import { Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useParams } from "react-router-dom";
+import useSocket from "../../hooks/useSocket";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -16,6 +18,19 @@ import Header from "./Header";
  * The <Outlet /> renders the matched child route.
  */
 const AppLayout = () => {
+  const { projectId } = useParams();
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (socket && projectId) {
+      socket.emit("join-project", projectId);
+      
+      return () => {
+        socket.emit("leave-project", projectId);
+      };
+    }
+  }, [socket, projectId]);
+
   return (
     <div className="flex h-screen bg-slate-900 text-slate-100">
       <Sidebar />

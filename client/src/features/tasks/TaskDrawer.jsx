@@ -7,6 +7,7 @@ import {
   useAddCommentMutation,
 } from "./taskApi";
 import { selectCurrentUser } from "../auth/authSlice";
+import FileUploader from "../../components/ui/FileUploader";
 
 /* ═══════════════════════════════════════════════════════
    Priority & label constants
@@ -198,6 +199,60 @@ const CommentsSection = ({ comments, taskId }) => {
 };
 
 /* ═══════════════════════════════════════════════════════
+   AttachmentsSection
+   ═══════════════════════════════════════════════════════ */
+const AttachmentsSection = ({ attachments, onAdd, onRemove }) => {
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+        Attachments ({attachments.length})
+      </h3>
+
+      <div className="space-y-2 mb-3">
+        {attachments.map((att, idx) => (
+          <div
+            key={idx}
+            className="group flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/40 p-2 hover:bg-slate-800/60 transition-colors"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded bg-slate-800 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <a
+                  href={att.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block truncate text-sm font-medium text-indigo-400 hover:underline"
+                >
+                  {att.filename}
+                </a>
+                <p className="text-[10px] text-slate-500">
+                  {att.size ? `${(att.size / 1024).toFixed(1)} KB` : "File"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => onRemove(idx)}
+              className="hidden p-1.5 text-slate-500 hover:text-red-400 group-hover:block"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <FileUploader onUpload={onAdd} />
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════
    TaskDrawer (main component)
    ═══════════════════════════════════════════════════════ */
 const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
@@ -215,7 +270,9 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
   const [assignees, setAssignees] = useState([]);
+
   const [subtasks, setSubtasks] = useState([]);
+  const [attachments, setAttachments] = useState([]);
 
   // Sync local state when task data loads
   useEffect(() => {
@@ -231,6 +288,7 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
           isCompleted: s.isCompleted,
         })) || []
       );
+      setAttachments(task.attachments || []);
     }
   }, [task]);
 
@@ -301,6 +359,29 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
       }).unwrap();
     } catch {
       setAssignees(task.assignees?.map((a) => a._id) || []);
+    }
+  };
+
+  // ── Attachments handler ────────────────────────────
+  const handleAttachmentAdd = async (fileData) => {
+    const newAttachments = [...attachments, { url: fileData.url, filename: fileData.filename, size: fileData.size }];
+    setAttachments(newAttachments);
+    if (!task) return;
+    try {
+      await updateTask({ id: task._id, attachments: newAttachments }).unwrap();
+    } catch {
+      setAttachments(task.attachments || []);
+    }
+  };
+
+  const handleAttachmentRemove = async (idx) => {
+    const newAttachments = attachments.filter((_, i) => i !== idx);
+    setAttachments(newAttachments);
+    if (!task) return;
+    try {
+      await updateTask({ id: task._id, attachments: newAttachments }).unwrap();
+    } catch {
+      setAttachments(task.attachments || []);
     }
   };
 
@@ -457,6 +538,13 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
             <SubtasksSection
               subtasks={subtasks}
               onUpdate={handleSubtaskUpdate}
+            />
+
+            {/* ── Attachments ──────────────────────── */}
+            <AttachmentsSection
+              attachments={attachments}
+              onAdd={handleAttachmentAdd}
+              onRemove={handleAttachmentRemove}
             />
 
             {/* ── Divider ──────────────────────────── */}
