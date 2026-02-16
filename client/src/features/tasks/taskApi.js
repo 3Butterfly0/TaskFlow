@@ -72,6 +72,20 @@ export const taskApi = baseApi.injectEndpoints({
         { type: "Project", id: projectId },
       ],
     }),
+
+    deleteTask: builder.mutation({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, taskId) => [
+        { type: "Task", id: "LIST" },
+        { type: "Project", id: "LIST" }, // Or specific project if available? We don't have projectId in arg easily unless passed.
+        // Usually Project ID is needed to invalidate specific Project.
+        // But invalidating LIST is safe though heavy.
+        // Wait, DELETE returns { id }.
+      ],
+    }),
   }),
 });
 
@@ -83,4 +97,5 @@ export const {
   useAddCommentMutation,
   useReorderColumnMutation,
   useMoveTaskMutation,
+  useDeleteTaskMutation,
 } = taskApi;

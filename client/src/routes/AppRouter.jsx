@@ -12,6 +12,7 @@ import Board from "../pages/Board";
 import Tickets from "../pages/Tickets";
 import Settings from "../pages/Settings";
 import Team from "../pages/Team";
+import AppSettings from "../pages/AppSettings";
 
 /**
  * Application router.
@@ -45,6 +46,7 @@ const AppRouter = () => {
           <Route path="projects/:projectId/tickets" element={<Tickets />} />
           <Route path="projects/:projectId/team" element={<Team />} />
           <Route path="projects/:projectId/settings" element={<Settings />} />
+          <Route path="settings" element={<AppSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>

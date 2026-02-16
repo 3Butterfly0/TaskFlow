@@ -1,4 +1,5 @@
 import Project from "../models/Project.model.js";
+import Task from "../models/Task.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
@@ -90,6 +91,40 @@ export const getProjectById = async (req, res, next) => {
     res
       .status(200)
       .json(new ApiResponse(200, project, "Project fetched successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// DELETE /api/projects/:id
+// Deletes project and all associated tasks
+// ──────────────────────────────────────────────────────
+export const deleteProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const project = await Project.findById(id);
+
+    if (!project) {
+      throw new ApiError(404, "Project not found");
+    }
+
+    // ── Access check: must be owner ───────────────────
+    if (project.owner.toString() !== userId) {
+      throw new ApiError(403, "Only the project owner can delete this project");
+    }
+
+    // ── Cascade delete tasks ──────────────────────────
+    await Task.deleteMany({ projectId: id });
+
+    // ── Delete project ────────────────────────────────
+    await Project.findByIdAndDelete(id);
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, { id }, "Project deleted successfully"));
   } catch (error) {
     next(error);
   }

@@ -510,3 +510,51 @@ export const moveAcrossColumns = async (req, res, next) => {
     next(error);
   }
 };
+
+// ──────────────────────────────────────────────────────
+// DELETE /api/tasks/:id
+// Delete a task (removes from project also)
+// ──────────────────────────────────────────────────────
+export const deleteTask = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const task = await Task.findById(id);
+    if (!task) {
+      throw new ApiError(404, "Task not found");
+    }
+
+    // ── Verify project access ─────────────────────────
+    const project = await Project.findById(task.projectId);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    const isOwner = project.owner.toString() === userId;
+    const isMember = project.members.some((m) => m.toString() === userId);
+    if (!isOwner && !isMember) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
+    // ── Remove from Column ────────────────────────────
+    const column = project.columns.find((col) => col.id === task.columnId);
+    if (column) {
+      column.taskIds = column.taskIds.filter((tid) => tid !== id);
+      await project.save();
+    }
+
+    // ── Delete Task ───────────────────────────────────
+    await Task.findByIdAndDelete(id);
+
+    // ── Emit socket event (after DB success) ──────────
+    emitToProject(task.projectId.toString(), "task.deleted", {
+      taskId: id,
+      columnId: task.columnId,
+    });
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, { id }, "Task deleted successfully"));
+  } catch (error) {
+    next(error);
+  }
+};

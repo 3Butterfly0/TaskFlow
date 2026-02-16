@@ -8,6 +8,8 @@ import {
 } from "./taskApi";
 import { selectCurrentUser } from "../auth/authSlice";
 import FileUploader from "../../components/ui/FileUploader";
+import { Settings, ArrowLeft, Trash2, X } from "lucide-react";
+import { useDeleteTaskMutation } from "./taskApi";
 
 /* ═══════════════════════════════════════════════════════
    Priority & label constants
@@ -272,7 +274,16 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
   const [assignees, setAssignees] = useState([]);
 
   const [subtasks, setSubtasks] = useState([]);
+
   const [attachments, setAttachments] = useState([]);
+
+  const [activeTab, setActiveTab] = useState("details"); // 'details' | 'settings'
+  const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+
+  // Reset tab when task changes
+  useEffect(() => {
+    setActiveTab("details");
+  }, [taskId]);
 
   // Sync local state when task data loads
   useEffect(() => {
@@ -400,20 +411,39 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
       <div className="flex h-full w-full max-w-xl flex-col border-l border-slate-800 bg-slate-950 shadow-2xl">
         {/* ── Header ─────────────────────────────── */}
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
-          <h2 className="text-sm font-semibold text-slate-400">
-            Task Details
-          </h2>
+          <div className="flex items-center gap-3">
+            {activeTab === "settings" && (
+              <button
+                onClick={() => setActiveTab("details")}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="size-5" />
+              </button>
+            )}
+            <h2 className="text-sm font-semibold text-slate-400">
+              {activeTab === "settings" ? "Task Settings" : "Task Details"}
+            </h2>
+          </div>
           <div className="flex items-center gap-2">
             {isSaving && (
               <span className="text-[11px] text-slate-500">Saving…</span>
             )}
+            
+            {activeTab === "details" && (
+              <button
+                onClick={() => setActiveTab("settings")}
+                className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                title="Task Settings"
+              >
+                <Settings className="size-5" />
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
             >
-              <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <X className="size-5" />
             </button>
           </div>
         </div>
@@ -421,11 +451,41 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
         {/* ── Body ───────────────────────────────── */}
         {isTaskLoading ? (
           <div className="flex-1 p-6 space-y-4">
-            <div className="h-7 w-3/4 animate-pulse rounded bg-slate-800" />
-            <div className="h-24 w-full animate-pulse rounded bg-slate-800/60" />
-            <div className="h-4 w-1/3 animate-pulse rounded bg-slate-800/40" />
+             {/* Skeleton loader */}
+             <div className="h-7 w-3/4 animate-pulse rounded bg-slate-800" />
+             <div className="h-24 w-full animate-pulse rounded bg-slate-800/60" />
+             <div className="h-4 w-1/3 animate-pulse rounded bg-slate-800/40" />
           </div>
         ) : task ? (
+          activeTab === "settings" ? (
+             <div className="flex-1 p-6">
+                <div className="rounded-xl border border-red-500/20 bg-red-950/10 p-6">
+                  <div className="mb-4 flex items-center gap-3 text-red-400">
+                    <Trash2 className="size-5" />
+                    <h3 className="text-lg font-semibold">Delete Task</h3>
+                  </div>
+                  <p className="mb-6 text-sm text-slate-400">
+                    Permanently delete this task? This action cannot be undone.
+                  </p>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to delete this task?")) {
+                        try {
+                           await deleteTask(task._id).unwrap();
+                           onClose();
+                        } catch (err) {
+                           console.error("Failed to delete task", err);
+                        }
+                      }
+                    }}
+                    disabled={isDeleting}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Task"}
+                  </button>
+                </div>
+             </div>
+          ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* ── Title ────────────────────────────── */}
             <div>
@@ -556,6 +616,7 @@ const TaskDrawer = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
               taskId={task._id}
             />
           </div>
+          )
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-sm text-slate-500">Task not found.</p>

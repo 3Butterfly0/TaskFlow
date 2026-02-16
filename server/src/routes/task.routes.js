@@ -7,6 +7,7 @@ import {
   addComment,
   reorderInsideColumn,
   moveAcrossColumns,
+  deleteTask,
 } from "../controllers/task.controller.js";
 import protect from "../middlewares/auth.middleware.js";
 
@@ -26,6 +27,7 @@ router.patch("/move", moveAcrossColumns);
 router.post("/", createTask);
 router.get("/:id", getTaskById);
 router.patch("/:id", updateTask);
+router.delete("/:id", deleteTask);
 
 // ── Comments ─────────────────────────────────────────
 router.post("/:id/comments", addComment);

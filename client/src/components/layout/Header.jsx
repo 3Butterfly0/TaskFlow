@@ -4,6 +4,7 @@ import { useGetMeQuery, useLogoutMutation } from "../../features/auth/authApi";
 import { clearCredentials } from "../../features/auth/authSlice";
 import { baseApi } from "../../app/baseApi";
 import NotificationBell from "./NotificationBell";
+import { Settings } from "lucide-react";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -36,6 +37,14 @@ const Header = () => {
         {user ? (
           <>
             <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => navigate("/settings")}
+                className="group flex size-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Settings"
+              >
+                <Settings className="size-5" />
+              </button>
+            
               <div className="flex size-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-medium text-white">
                 {user.username?.charAt(0).toUpperCase() || "U"}
               </div>
