@@ -61,6 +61,26 @@ const userSchema = new mongoose.Schema(
         ref: "Project",
       },
     ],
+
+    pinnedProjects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project",
+      },
+    ],
+
+    lastAccessedProjects: [
+      {
+        projectId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Project",
+        },
+        accessedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true, // createdAt, updatedAt

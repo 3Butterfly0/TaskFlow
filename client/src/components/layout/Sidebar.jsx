@@ -1,4 +1,6 @@
 import { NavLink, useParams } from "react-router-dom";
+import { useGetMeQuery } from "../../features/auth/authApi";
+import { Pin } from "lucide-react";
 
 const mainNav = [
   { label: "Dashboard", to: "/", icon: "grid" },
@@ -59,6 +61,20 @@ const NavItem = ({ to, label, icon, end = false }) => (
 
 const Sidebar = () => {
   const { projectId } = useParams();
+  const { data } = useGetMeQuery();
+  const user = data?.data;
+
+  // Filter out the current project from recent list to avoid redundancy if needed,
+  // but requirements say "any two Workspaces recently opened".
+  // We'll just take the top 2 from lastAccessedProjects.
+  const recentProjects = user?.lastAccessedProjects
+    ?.slice()
+    .sort((a, b) => new Date(b.accessedAt) - new Date(a.accessedAt))
+    .slice(0, 2)
+    .map(p => p.projectId)
+    .filter(Boolean) || [];
+
+  const pinnedProjects = user?.pinnedProjects?.slice().reverse().slice(0, 5) || [];
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950">
@@ -83,6 +99,43 @@ const Sidebar = () => {
             <NavItem key={item.to} {...item} end={item.to === "/"} />
           ))}
         </div>
+
+        {/* Recent */}
+        {recentProjects.length > 0 && (
+          <div className="mb-4">
+             <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Recent
+            </p>
+            {recentProjects.map((project) => (
+               <NavItem
+                key={project._id}
+                to={`/projects/${project._id}/board`}
+                label={project.name}
+                icon="grid" // Reusing grid icon for now, or could use custom
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Pinned */}
+        {pinnedProjects.length > 0 && (
+          <div className="mb-4">
+             <div className="mb-2 flex items-center justify-between px-3">
+               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Pinned
+              </p>
+               <Pin className="size-3 text-slate-600" />
+             </div>
+            {pinnedProjects.map((project) => (
+               <NavItem
+                key={project._id}
+                to={`/projects/${project._id}/board`}
+                label={project.name}
+                icon="grid"
+              />
+            ))}
+          </div>
+        )}
 
         {/* Project (shown when inside a project) */}
         {projectId && (

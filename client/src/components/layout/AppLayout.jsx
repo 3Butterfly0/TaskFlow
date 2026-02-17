@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import useSocket from "../../hooks/useSocket";
+import { useUpdateLastAccessedMutation } from "../../features/projects/projectApi";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -20,6 +21,13 @@ import Header from "./Header";
 const AppLayout = () => {
   const { projectId } = useParams();
   const { socket } = useSocket();
+  const [updateLastAccessed] = useUpdateLastAccessedMutation();
+
+  useEffect(() => {
+    if (projectId) {
+      updateLastAccessed(projectId);
+    }
+  }, [projectId, updateLastAccessed]);
 
   useEffect(() => {
     if (socket && projectId) {

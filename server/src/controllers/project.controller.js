@@ -1,5 +1,7 @@
 import Project from "../models/Project.model.js";
+
 import Task from "../models/Task.model.js";
+import User from "../models/User.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
@@ -125,6 +127,74 @@ export const deleteProject = async (req, res, next) => {
     res
       .status(200)
       .json(new ApiResponse(200, { id }, "Project deleted successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// POST /api/projects/:id/pin
+// Toggle pin status for a project
+// ──────────────────────────────────────────────────────
+export const togglePinProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Verify project exists
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    const user = await User.findById(userId);
+    const isPinned = user.pinnedProjects.includes(id);
+
+    if (isPinned) {
+      user.pinnedProjects = user.pinnedProjects.filter(
+        (pId) => pId.toString() !== id,
+      );
+    } else {
+      user.pinnedProjects.push(id);
+    }
+
+    await user.save({ validateModifiedOnly: true });
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, { isPinned: !isPinned }, "Pin status updated"),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// POST /api/projects/:id/access
+// Update last accessed time for a project
+// ──────────────────────────────────────────────────────
+export const updateLastAccessed = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Verify project exists
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    await User.findByIdAndUpdate(userId, {
+      $pull: { lastAccessedProjects: { projectId: id } },
+    });
+
+    await User.findByIdAndUpdate(userId, {
+      $push: {
+        lastAccessedProjects: {
+          $each: [{ projectId: id, accessedAt: new Date() }],
+          $slice: -5, // Keep only last 5
+        },
+      },
+    });
+
+    res.status(200).json(new ApiResponse(200, null, "Access time updated"));
   } catch (error) {
     next(error);
   }

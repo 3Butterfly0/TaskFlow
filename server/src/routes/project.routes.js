@@ -4,6 +4,8 @@ import {
   getProjects,
   getProjectById,
   deleteProject,
+  togglePinProject,
+  updateLastAccessed,
 } from "../controllers/project.controller.js";
 import protect from "../middlewares/auth.middleware.js";
 
@@ -18,5 +20,7 @@ router.get("/", getProjects);
 
 router.get("/:id", getProjectById);
 router.delete("/:id", deleteProject);
+router.post("/:id/pin", togglePinProject);
+router.post("/:id/access", updateLastAccessed);
 
 export default router;

@@ -37,6 +37,22 @@ export const projectApi = baseApi.injectEndpoints({
         { type: "Project", id },
       ],
     }),
+
+    togglePinProject: builder.mutation({
+      query: (id) => ({
+        url: `/projects/${id}/pin`,
+        method: "POST",
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+    updateLastAccessed: builder.mutation({
+      query: (id) => ({
+        url: `/projects/${id}/access`,
+        method: "POST",
+      }),
+      invalidatesTags: ["User"],
+    }),
   }),
 });
 
@@ -45,4 +61,6 @@ export const {
   useGetProjectByIdQuery,
   useCreateProjectMutation,
   useDeleteProjectMutation,
+  useTogglePinProjectMutation,
+  useUpdateLastAccessedMutation,
 } = projectApi;

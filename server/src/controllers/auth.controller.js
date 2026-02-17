@@ -126,7 +126,9 @@ export const logout = async (_req, res, next) => {
 export const getMe = async (req, res, next) => {
   try {
     // req.user is set by auth middleware
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id)
+      .populate("pinnedProjects", "name")
+      .populate("lastAccessedProjects.projectId", "name");
     if (!user) {
       throw new ApiError(404, "User not found");
     }

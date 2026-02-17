@@ -1,172 +1,179 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
-import { selectCurrentUser } from "../features/auth/authSlice";
-import { Bell, Moon, Shield, User, Smartphone, LogOut } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { selectCurrentUser, clearCredentials } from "../features/auth/authSlice";
 import { useLogoutMutation } from "../features/auth/authApi";
-import { useDispatch } from "react-redux";
-import { clearCredentials } from "../features/auth/authSlice";
 import { baseApi } from "../app/baseApi";
 import { useNavigate } from "react-router-dom";
+import { User, Bell, Palette, Shield, LogOut } from "lucide-react";
+import SettingsLayout from "../components/settings/SettingsLayout";
+import { Toaster } from "react-hot-toast";
 
-const SettingsSection = ({ title, children }) => (
-  <div className="mb-8">
-    <h2 className="mb-4 text-lg font-semibold text-white">{title}</h2>
-    <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-      {children}
-    </div>
-  </div>
-);
+const AppSettings = () => {
+    const user = useSelector(selectCurrentUser);
+    const [activeTab, setActiveTab] = useState("account");
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
 
-const SettingRow = ({ icon: Icon, title, description, action }) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-4">
-      <div className="flex size-10 items-center justify-center rounded-lg bg-slate-800 text-slate-400">
-        <Icon className="size-5" />
-      </div>
-      <div>
-        <p className="font-medium text-slate-200">{title}</p>
-        <p className="text-sm text-slate-500">{description}</p>
-      </div>
-    </div>
-    <div>{action}</div>
-  </div>
-);
+    const tabs = [
+        { id: "account", label: "Account", icon: User },
+        { id: "notifications", label: "Notifications", icon: Bell },
+        { id: "appearance", label: "Appearance", icon: Palette },
+        { id: "security", label: "Security", icon: Shield },
+    ];
 
-const Settings = () => {
-  const user = useSelector(selectCurrentUser);
-  const [notifications, setNotifications] = useState(true);
-  const [theme, setTheme] = useState("dark");
-  
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+    const handleLogout = async () => {
+        try {
+            await logout().unwrap();
+        } catch {
+            // ignore
+        } finally {
+            dispatch(clearCredentials());
+            dispatch(baseApi.util.resetApiState());
+            navigate("/login", { replace: true });
+        }
+    };
 
-  const handleLogout = async () => {
-    try {
-      await logout().unwrap();
-    } catch {
-      // ignore
-    } finally {
-      dispatch(clearCredentials());
-      dispatch(baseApi.util.resetApiState());
-      navigate("/login", { replace: true });
-    }
-  };
+    return (
+        <SettingsLayout
+            title="App Settings"
+            description="Manage your account preferences and global application settings."
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+        >
+            {/* ── Toaster ───────────────────────────────────── */}
+            <Toaster position="top-right" />
 
-  return (
-    <div className="mx-auto max-w-3xl py-8">
-      <h1 className="mb-8 text-2xl font-bold text-white">Settings</h1>
+            {/* ── Content ───────────────────────────────────── */}
+            {activeTab === "account" && (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">Profile</h2>
+                        <p className="text-sm text-slate-400">Update your personal information.</p>
+                    </div>
 
-      {/* ── Profile ─────────────────────────────────────── */}
-      <SettingsSection title="Profile">
-        <div className="flex items-center gap-4">
-          <div className="flex size-16 items-center justify-center rounded-full bg-indigo-600 text-xl font-bold text-white">
-            {user?.username?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-white">{user?.username}</p>
-            <p className="text-sm text-slate-400">{user?.email}</p>
-          </div>
-          <button className="ml-auto rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
-            Edit Profile
-          </button>
-        </div>
-      </SettingsSection>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300">Username</label>
+                            <input
+                                type="text"
+                                defaultValue={user?.username}
+                                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-300">Email</label>
+                            <input
+                                type="email"
+                                defaultValue={user?.email}
+                                disabled
+                                className="w-full cursor-not-allowed rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-slate-400 outline-none"
+                            />
+                        </div>
+                    </div>
 
-      {/* ── Appearance ──────────────────────────────────── */}
-      <SettingsSection title="Appearance">
-        <SettingRow
-          icon={Moon}
-          title="Dark Mode"
-          description="Use dark theme for the application"
-          action={
-            <div className="flex items-center gap-2 rounded-lg bg-slate-800 p-1">
-              <button
-                onClick={() => setTheme("dark")}
-                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                  theme === "dark"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                On
-              </button>
-              <button
-                onClick={() => setTheme("light")}
-                className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                  theme === "light"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Off
-              </button>
-            </div>
-          }
-        />
-      </SettingsSection>
+                    <div className="border-t border-slate-800 pt-6">
+                        <h3 className="mb-4 text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                            Danger Zone
+                        </h3>
+                        <div className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-950/10 p-4">
+                            <div>
+                                <h4 className="font-medium text-red-400">Sign Out</h4>
+                                <p className="text-xs text-red-300/60">
+                                    Sign out of your account on this device.
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                disabled={isLoggingOut}
+                                className="flex items-center gap-2 rounded-lg bg-red-600/10 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-600/20 transition-colors"
+                            >
+                                <LogOut className="size-4" />
+                                {isLoggingOut ? "Signing out..." : "Sign Out"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-      {/* ── Notifications ───────────────────────────────── */}
-      <SettingsSection title="Notifications">
-        <SettingRow
-          icon={Bell}
-          title="Email Notifications"
-          description="Receive email updates about your tasks"
-          action={
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={notifications}
-                onChange={() => setNotifications(!notifications)}
-                className="peer sr-only"
-              />
-              <div className="h-6 w-11 rounded-full bg-slate-700 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500/50"></div>
-            </label>
-          }
-        />
-        <div className="my-4 border-t border-slate-800" />
-        <SettingRow
-          icon={Smartphone}
-          title="Push Notifications"
-          description="Receive push notifications on your device"
-          action={
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input type="checkbox" className="peer sr-only" disabled />
-              <div className="h-6 w-11 rounded-full bg-slate-700 opacity-50 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-slate-400 after:content-['']"></div>
-            </label>
-          }
-        />
-      </SettingsSection>
+            {activeTab === "notifications" && (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">Notifications</h2>
+                        <p className="text-sm text-slate-400">Choose how you want to be notified.</p>
+                    </div>
 
-      {/* ── Security ────────────────────────────────────── */}
-      <SettingsSection title="Security">
-        <SettingRow
-          icon={Shield}
-          title="Password"
-          description="Change your password"
-          action={
-            <button className="text-sm font-medium text-indigo-400 hover:text-indigo-300">
-              Update
-            </button>
-          }
-        />
-        <div className="my-4 border-t border-slate-800" />
-        <SettingRow
-          icon={LogOut}
-          title="Log out"
-          description="Sign out of your account"
-          action={
-            <button
-              onClick={handleLogout}
-              className="text-sm font-medium text-red-400 hover:text-red-300"
-            >
-              {isLoggingOut ? "Logging out..." : "Log out"}
-            </button>
-          }
-        />
-      </SettingsSection>
-    </div>
-  );
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-medium text-slate-200">Email Notifications</h3>
+                                <p className="text-xs text-slate-500">Receive updates via email.</p>
+                            </div>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                                <input type="checkbox" defaultChecked className="peer sr-only" />
+                                <div className="h-6 w-11 rounded-full bg-slate-700 peer-checked:bg-indigo-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </label>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-medium text-slate-200">Push Notifications</h3>
+                                <p className="text-xs text-slate-500">Receive updates on your device.</p>
+                            </div>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                                <input type="checkbox" defaultChecked className="peer sr-only" />
+                                <div className="h-6 w-11 rounded-full bg-slate-700 peer-checked:bg-indigo-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === "appearance" && (
+                <div className="space-y-6">
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">Appearance</h2>
+                        <p className="text-sm text-slate-400">Customize the look and feel.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="mb-2 block text-sm font-medium text-slate-300">Theme</label>
+                            <div className="grid grid-cols-3 gap-3">
+                                <button className="rounded-lg border-2 border-indigo-500 bg-slate-800 p-2 text-center text-sm font-medium text-white">
+                                    Dark
+                                </button>
+                                <button className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-center text-sm font-medium text-slate-400 hover:bg-slate-800">
+                                    Light
+                                </button>
+                                <button className="rounded-lg border border-slate-700 bg-slate-900 p-2 text-center text-sm font-medium text-slate-400 hover:bg-slate-800">
+                                    System
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === "security" && (
+                <div className="space-y-6">
+                   <div>
+                        <h2 className="text-lg font-semibold text-white">Security</h2>
+                        <p className="text-sm text-slate-400">Manage your password and security settings.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <button className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+                            Change Password
+                        </button>
+                        <button className="block text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+                            Enable Two-Factor Authentication
+                        </button>
+                    </div>
+                </div>
+            )}
+        </SettingsLayout>
+    );
 };
 
-export default Settings;
+export default AppSettings;
