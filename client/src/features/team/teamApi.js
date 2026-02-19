@@ -39,12 +39,24 @@ export const teamApi = baseApi.injectEndpoints({
 
     transferOwnership: builder.mutation({
       query: ({ projectId, memberId }) => ({
-        url: `/projects/${projectId}/members/${memberId}/role`,
-        method: "PATCH",
+        url: `/projects/${projectId}/members/${memberId}/transfer`,
+        method: "POST",
       }),
       invalidatesTags: [
         { type: "Member", id: "LIST" },
         { type: "Project", id: "LIST" },
+      ],
+    }),
+
+    updateMemberRole: builder.mutation({
+      query: ({ projectId, memberId, role }) => ({
+        url: `/projects/${projectId}/members/${memberId}/role`,
+        method: "PATCH",
+        body: { role },
+      }),
+      invalidatesTags: (_result, _error, { memberId }) => [
+        { type: "Member", id: memberId },
+        { type: "Member", id: "LIST" },
       ],
     }),
   }),
@@ -55,4 +67,5 @@ export const {
   useAddMemberMutation,
   useRemoveMemberMutation,
   useTransferOwnershipMutation,
+  useUpdateMemberRoleMutation,
 } = teamApi;

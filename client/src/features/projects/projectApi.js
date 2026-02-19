@@ -47,20 +47,35 @@ export const projectApi = baseApi.injectEndpoints({
     }),
 
     updateLastAccessed: builder.mutation({
-      query: (id) => ({
-        url: `/projects/${id}/access`,
+      query: (projectId) => ({
+        url: `/projects/${projectId}/access`,
         method: "POST",
       }),
-      invalidatesTags: ["User"],
+    }),
+    getProjectMembers: builder.query({
+      query: (projectId) => `/projects/${projectId}/members`,
+      providesTags: ["Team"],
+    }),
+    addColumn: builder.mutation({
+      query: ({ projectId, title }) => ({
+        url: `/projects/${projectId}/columns`,
+        method: "POST",
+        body: { title },
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "Project", id: projectId },
+      ],
     }),
   }),
 });
 
 export const {
   useGetProjectsQuery,
-  useGetProjectByIdQuery,
   useCreateProjectMutation,
+  useGetProjectByIdQuery,
   useDeleteProjectMutation,
   useTogglePinProjectMutation,
   useUpdateLastAccessedMutation,
+  useGetProjectMembersQuery,
+  useAddColumnMutation,
 } = projectApi;

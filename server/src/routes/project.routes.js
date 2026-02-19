@@ -6,6 +6,8 @@ import {
   deleteProject,
   togglePinProject,
   updateLastAccessed,
+  getProjectMembers,
+  addColumn,
 } from "../controllers/project.controller.js";
 import protect from "../middlewares/auth.middleware.js";
 
@@ -22,5 +24,7 @@ router.get("/:id", getProjectById);
 router.delete("/:id", deleteProject);
 router.post("/:id/pin", togglePinProject);
 router.post("/:id/access", updateLastAccessed);
+// router.get("/:id/members", getProjectMembers); // Moved to team.routes.js
+router.post("/:id/columns", addColumn);
 
 export default router;

@@ -34,10 +34,20 @@ const PromoteTicketModal = ({ isOpen, onClose, ticket, projectId }) => {
     }
 
     try {
+      const isBacklog = columnId === "BACKLOG";
+      // If backlog, we still need a valid columnId for the model (use first available)
+      const targetColumnId = isBacklog ? columns[0]?.id : columnId;
+
+      if (!targetColumnId) {
+        setError("Project has no columns to attach task to.");
+        return;
+      }
+
       await promoteTicket({
         id: ticket._id,
         projectId,
-        columnId,
+        columnId: targetColumnId,
+        isInBacklog: isBacklog,
       }).unwrap();
 
       setColumnId("");
@@ -68,12 +78,32 @@ const PromoteTicketModal = ({ isOpen, onClose, ticket, projectId }) => {
           </p>
         </div>
 
-        {/* Column picker */}
+        {/* Target selection */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Target Column
+            Target
           </label>
           <div className="space-y-1.5">
+            {/* Backlog Option */}
+            <button
+              type="button"
+              onClick={() => setColumnId("BACKLOG")}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                columnId === "BACKLOG"
+                  ? "bg-indigo-600/20 text-indigo-300 ring-1 ring-indigo-500/50"
+                  : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+              <span>Backlog</span>
+              <span className="ml-auto text-xs text-slate-500">
+                Wait for sprint
+              </span>
+            </button>
+
+            {/* Board Columns */}
             {columns.map((col) => (
               <button
                 key={col.id}
@@ -86,7 +116,7 @@ const PromoteTicketModal = ({ isOpen, onClose, ticket, projectId }) => {
                 }`}
               >
                 <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" />
+                  <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" />
                 </svg>
                 {col.title}
                 <span className="ml-auto text-xs text-slate-500">

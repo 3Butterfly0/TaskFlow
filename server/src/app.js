@@ -13,6 +13,9 @@ import taskRoutes from "./routes/task.routes.js";
 import ticketRoutes from "./routes/ticket.routes.js";
 import teamRoutes from "./routes/team.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
+import searchRoutes from "./routes/search.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 
 /**
  * Express application factory.
@@ -57,6 +60,9 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/projects/:projectId/members", teamRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // ── 404 Catch-All ────────────────────────────────────
 app.all("*", (req, _res, next) => {

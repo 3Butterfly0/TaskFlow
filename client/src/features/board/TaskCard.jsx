@@ -23,7 +23,7 @@ const priorityLabels = {
   critical: "Critical",
 };
 
-const TaskCard = ({ task, isDragOverlay = false, onOpen }) => {
+const TaskCard = ({ task, isDragOverlay = false, onOpen, isDoneColumn }) => {
   const {
     attributes,
     listeners,
@@ -69,6 +69,8 @@ const TaskCard = ({ task, isDragOverlay = false, onOpen }) => {
     }
   };
 
+  const borderColor = isDoneColumn ? "border-emerald-500/50 shadow-emerald-500/10" : "border-slate-800";
+
   return (
     <div
       ref={setNodeRef}
@@ -76,7 +78,7 @@ const TaskCard = ({ task, isDragOverlay = false, onOpen }) => {
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`group cursor-grab rounded-lg border border-slate-800 bg-slate-950 p-3.5 transition-colors hover:border-slate-700 active:cursor-grabbing ${
+      className={`group cursor-grab rounded-lg border bg-slate-950 p-3.5 transition-all hover:bg-slate-900 active:cursor-grabbing ${borderColor} ${
         isDragOverlay ? "rotate-2 shadow-2xl shadow-black/50 ring-2 ring-indigo-500/50" : ""
       }`}
     >

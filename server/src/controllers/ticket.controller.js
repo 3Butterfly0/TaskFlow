@@ -165,6 +165,7 @@ export const promoteToTask = async (req, res, next) => {
       projectId,
       columnId,
       assignees: [],
+      isInBacklog: !!req.body.isInBacklog,
       activityLog: [
         {
           type: "task_created",
@@ -178,9 +179,11 @@ export const promoteToTask = async (req, res, next) => {
       ],
     });
 
-    // Step 2: Append task ID to column
-    column.taskIds.push(task._id.toString());
-    await project.save();
+    // Step 2: Append task ID to column (ONLY if not backlog)
+    if (!req.body.isInBacklog) {
+      column.taskIds.push(task._id.toString());
+      await project.save();
+    }
 
     // Step 3: Link ticket to task and update status
     ticket.linkedTaskId = task._id;

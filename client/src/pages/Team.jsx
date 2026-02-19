@@ -103,9 +103,29 @@ const StatsBar = ({ members }) => {
 /* ═══════════════════════════════════════════════════════
    MemberCard
    ═══════════════════════════════════════════════════════ */
-const MemberCard = ({ member, isOwner, currentUserId, onRemove, onTransfer }) => {
-  const isSelf = member._id === currentUserId;
-  const isAdmin = member.role === "admin";
+const MemberCard = ({
+  member,
+  currentUser,
+  amIOwner,
+  amIAdmin,
+  onRemove,
+  onTransfer,
+  onUpdateRole,
+}) => {
+  const isSelf = member._id === currentUser?._id;
+  const isTargetOwner = member.isOwner;
+  const isTargetAdmin = member.role === "admin";
+
+  // Permissions
+  // Owner can manage everyone (except self here).
+  // Admin can manage non-admins/non-owners.
+  const canManageRole =
+    !isSelf &&
+    !isTargetOwner &&
+    (amIOwner || (amIAdmin && !isTargetAdmin));
+
+  const canRemove = canManageRole; // Same logic for removal
+  const canTransfer = amIOwner && !isSelf;
 
   const getInitials = (name) =>
     name
@@ -159,12 +179,35 @@ const MemberCard = ({ member, isOwner, currentUserId, onRemove, onTransfer }) =>
               You
             </span>
           )}
+          {member.isOwner && (
+             <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-500">
+               Owner
+             </span>
+          )}
         </div>
         <p className="truncate text-xs text-slate-500">{member.email}</p>
       </div>
 
-      {/* Role badge */}
-      <RoleBadge role={member.role} />
+      {/* Role Manager */}
+      {canManageRole ? (
+        <div className="relative">
+          <select
+            value={member.role}
+            onChange={(e) => onUpdateRole(member._id, e.target.value)}
+            className="h-7 rounded-lg border border-slate-700 bg-slate-800/50 pl-2 pr-8 text-xs font-medium text-slate-300 outline-none transition-colors focus:border-indigo-500 focus:bg-slate-800 focus:text-white"
+          >
+            <option value="admin">Admin</option>
+            <option value="member">Member</option>
+            <option value="observer">Observer</option>
+          </select>
+           {/* Custom arrow if desired, or simpler native select */}
+           <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">
+            <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+           </div>
+        </div>
+      ) : (
+        <RoleBadge role={member.role} />
+      )}
 
       {/* Last seen */}
       <div className="hidden w-24 text-right sm:block">
@@ -177,13 +220,13 @@ const MemberCard = ({ member, isOwner, currentUserId, onRemove, onTransfer }) =>
         </p>
       </div>
 
-      {/* Actions (only for owner, not on self/admin) */}
-      {isOwner && !isSelf && (
+      {/* Actions */}
+      {(canTransfer || canRemove) && (
         <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          {!isAdmin && (
+          {canTransfer && (
             <button
               onClick={() => onTransfer(member)}
-              title="Make admin"
+              title="Transfer Ownership"
               className="flex size-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-amber-500/10 hover:text-amber-400"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -191,17 +234,19 @@ const MemberCard = ({ member, isOwner, currentUserId, onRemove, onTransfer }) =>
               </svg>
             </button>
           )}
-          <button
-            onClick={() => onRemove(member)}
-            title="Remove member"
-            className="flex size-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <line x1="17" y1="11" x2="22" y2="11" />
-            </svg>
-          </button>
+          {canRemove && (
+            <button
+              onClick={() => onRemove(member)}
+              title="Remove member"
+              className="flex size-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <line x1="17" y1="11" x2="22" y2="11" />
+              </svg>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -259,6 +304,7 @@ const Team = () => {
 
   const [removeMember, { isLoading: isRemoving }] = useRemoveMemberMutation();
   const [transferOwnership, { isLoading: isTransferring }] = useTransferOwnershipMutation();
+  const [updateMemberRole] = useUpdateMemberRoleMutation();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
@@ -273,9 +319,16 @@ const Team = () => {
     }));
   }, [membersData, onlineUsersMap, projectId, currentUser]);
 
-  const isOwner = members.some(
-    (m) => m._id === currentUser?._id && m.role === "admin"
-  );
+  // Identify my role
+  const { amIOwner, amIAdmin } = useMemo(() => {
+     const me = members.find(m => m._id === currentUser?._id);
+     return {
+       amIOwner: !!me?.isOwner,
+       amIAdmin: me?.role === "admin"
+     };
+  }, [members, currentUser]);
+
+  const canInvite = amIOwner || amIAdmin;
 
   // ── Handlers ───────────────────────────────────────
   const handleRemove = async () => {
@@ -303,6 +356,18 @@ const Team = () => {
       // Error handled by RTK Query
     }
   };
+  
+  const handleUpdateRole = async (memberId, newRole) => {
+    try {
+      await updateMemberRole({
+        projectId,
+        memberId,
+        role: newRole
+      }).unwrap();
+    } catch (err) {
+      console.error("Failed to update role", err);
+    }
+  };
 
   // ── Search / filter ────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -316,7 +381,6 @@ const Team = () => {
     );
   }, [members, searchQuery]);
 
-  // ── Loading state ──────────────────────────────────
   // ── Loading state ──────────────────────────────────
   if (isLoading) {
     return (
@@ -368,7 +432,7 @@ const Team = () => {
           </p>
         </div>
 
-        {isOwner && (
+        {canInvite && (
           <button
             onClick={() => setInviteOpen(true)}
             id="invite-member-btn"
@@ -411,10 +475,12 @@ const Team = () => {
             <MemberCard
               key={member._id}
               member={member}
-              isOwner={isOwner}
-              currentUserId={currentUser?._id}
+              currentUser={currentUser}
+              amIOwner={amIOwner}
+              amIAdmin={amIAdmin}
               onRemove={setRemoveTarget}
               onTransfer={setTransferTarget}
+              onUpdateRole={handleUpdateRole}
             />
           ))
         )}
@@ -427,11 +493,11 @@ const Team = () => {
         projectId={projectId}
       />
 
-      {/* ── Remove confirmation ─────────────────────── */}
+      {/* ── Confirm Dialogs ─────────────────────────── */}
       <ConfirmDialog
         isOpen={!!removeTarget}
         title="Remove Member"
-        message={`Are you sure you want to remove ${removeTarget?.username} from this project? They will lose access to all boards, tickets, and tasks.`}
+        message={`Are you sure you want to remove ${removeTarget?.username}?`}
         confirmLabel="Remove"
         confirmColor="red"
         onConfirm={handleRemove}
@@ -439,11 +505,10 @@ const Team = () => {
         isLoading={isRemoving}
       />
 
-      {/* ── Transfer ownership confirmation ──────────── */}
       <ConfirmDialog
         isOpen={!!transferTarget}
         title="Transfer Ownership"
-        message={`Are you sure you want to transfer project ownership to ${transferTarget?.username}? You will become a regular member.`}
+        message={`Transfer ownership to ${transferTarget?.username}? You will lose owner privileges.`}
         confirmLabel="Transfer"
         confirmColor="amber"
         onConfirm={handleTransfer}

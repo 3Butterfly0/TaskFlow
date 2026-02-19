@@ -141,6 +141,11 @@ const taskSchema = new mongoose.Schema(
       default: 0,
     },
 
+    isInBacklog: {
+      type: Boolean,
+      default: false,
+    },
+
     labels: [
       {
         type: String,
@@ -175,6 +180,9 @@ taskSchema.index({ priority: 1 });
 
 // Compound index – accelerates board rendering
 taskSchema.index({ projectId: 1, columnId: 1 });
+
+// Text index for search
+taskSchema.index({ title: "text", content: "text" });
 
 const Task = mongoose.model("Task", taskSchema);
 

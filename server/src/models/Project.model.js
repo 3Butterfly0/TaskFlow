@@ -61,6 +61,21 @@ const projectSchema = new mongoose.Schema(
       ],
     },
 
+    // ── Member Roles (for permissions) ──────────────────
+    roles: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        role: {
+          type: String,
+          enum: ["admin", "member", "observer"],
+          default: "member",
+        },
+      },
+    ],
+
     // ── Production enhancements (per production-blueprint.md §4) ──
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -87,6 +102,9 @@ const projectSchema = new mongoose.Schema(
 projectSchema.index({ owner: 1 });
 projectSchema.index({ members: 1 });
 projectSchema.index({ archived: 1 });
+
+// Text index for search
+projectSchema.index({ name: "text", description: "text" });
 
 const Project = mongoose.model("Project", projectSchema);
 

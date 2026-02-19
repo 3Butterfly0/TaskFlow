@@ -97,6 +97,31 @@ export const getProjectById = async (req, res, next) => {
     next(error);
   }
 };
+// ──────────────────────────────────────────────────────
+// GET /api/projects/:id/members
+// ──────────────────────────────────────────────────────
+export const getProjectMembers = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const project = await Project.findById(id).populate(
+      "members",
+      "username email avatar",
+    );
+    if (!project) throw new ApiError(404, "Project not found");
+
+    // Check access?
+    // Assuming if you know the ID you can see members or stick to member check
+    // Logic: members can see other members
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, project.members, "Members fetched successfully"),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
 
 // ──────────────────────────────────────────────────────
 // DELETE /api/projects/:id
@@ -195,6 +220,37 @@ export const updateLastAccessed = async (req, res, next) => {
     });
 
     res.status(200).json(new ApiResponse(200, null, "Access time updated"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// POST /api/projects/:id/columns
+// Add a new column to the project
+// ──────────────────────────────────────────────────────
+export const addColumn = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+      throw new ApiError(400, "Column title is required");
+    }
+
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    // Add new column
+    project.columns.push({ title, taskIds: [] });
+    await project.save();
+
+    // Return the new column (last one)
+    const newColumn = project.columns[project.columns.length - 1];
+
+    res
+      .status(201)
+      .json(new ApiResponse(201, newColumn, "Column added successfully"));
   } catch (error) {
     next(error);
   }

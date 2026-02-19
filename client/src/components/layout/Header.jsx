@@ -4,13 +4,16 @@ import { useGetMeQuery, useLogoutMutation } from "../../features/auth/authApi";
 import { clearCredentials } from "../../features/auth/authSlice";
 import { baseApi } from "../../app/baseApi";
 import NotificationBell from "./NotificationBell";
-import { Settings } from "lucide-react";
+import { Settings, Search } from "lucide-react";
+import { useState } from "react";
+import SearchModal from "../search/SearchModal";
 
 const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { data } = useGetMeQuery();
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const user = data?.data;
 
@@ -33,7 +36,22 @@ const Header = () => {
 
       {/* ── Right: user info + logout ──────────── */}
       <div className="flex items-center gap-4">
-        {user && <NotificationBell />}
+        {user && (
+          <>
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <Search className="size-4" />
+              <span className="hidden sm:inline">Search...</span>
+              <kbd className="hidden rounded bg-slate-800 px-1.5 text-xs font-semibold text-slate-500 sm:inline-block">
+                /
+              </kbd>
+            </button>
+            <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            <NotificationBell />
+          </>
+        )}
         {user ? (
           <>
             <div className="flex items-center gap-2.5">

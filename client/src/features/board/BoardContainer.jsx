@@ -12,6 +12,8 @@ import { arrayMove } from "@dnd-kit/sortable";
 import BoardColumn from "./BoardColumn";
 import TaskCard from "./TaskCard";
 import { useReorderColumnMutation, useMoveTaskMutation } from "../tasks/taskApi";
+import { useAddColumnMutation } from "../projects/projectApi";
+import { Plus, X, Check } from "lucide-react";
 
 /**
  * Board container with @dnd-kit drag-and-drop + optimistic UI.
@@ -25,6 +27,23 @@ import { useReorderColumnMutation, useMoveTaskMutation } from "../tasks/taskApi"
 const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }) => {
   const [reorderColumn] = useReorderColumnMutation();
   const [moveTask] = useMoveTaskMutation();
+  const [addColumn] = useAddColumnMutation();
+
+  const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState("");
+
+  const handleAddColumn = async (e) => {
+    e.preventDefault();
+    if (!newColumnTitle.trim()) return;
+
+    try {
+      await addColumn({ projectId, title: newColumnTitle.trim() }).unwrap();
+      setNewColumnTitle("");
+      setIsAddingColumn(false);
+    } catch (err) {
+      console.error("Failed to add column", err);
+    }
+  };
 
   // ── Optimistic column state ────────────────────────
   const [optimisticColumns, setOptimisticColumns] = useState(null);
@@ -267,8 +286,52 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
     >
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
-          <BoardColumn key={column.id} column={column} taskMap={taskMap} onOpen={onOpenTask} />
+          <BoardColumn 
+            key={column.id} 
+            column={column} 
+            taskMap={taskMap} 
+            onOpen={onOpenTask} 
+            isDoneColumn={column.title === "Done"}
+          />
         ))}
+
+        {/* ── Add Column Button ────────────────── */}
+        <div className="w-72 shrink-0 rounded-xl border border-dashed border-slate-800 bg-slate-900/20 p-3">
+          {isAddingColumn ? (
+            <form onSubmit={handleAddColumn} className="space-y-2">
+              <input
+                autoFocus
+                type="text"
+                placeholder="Column title..."
+                className="w-full rounded-lg bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/50"
+                value={newColumnTitle}
+                onChange={(e) => setNewColumnTitle(e.target.value)}
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="flex items-center gap-1 rounded bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500"
+                >
+                  <Check className="size-3.5" /> Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingColumn(false)}
+                  className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setIsAddingColumn(true)}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition-colors"
+            >
+              <Plus className="size-4" /> Add Column
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Drag overlay ──────────────────────── */}

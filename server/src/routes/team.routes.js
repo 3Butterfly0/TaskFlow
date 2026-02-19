@@ -4,6 +4,7 @@ import {
   addMember,
   removeMember,
   transferOwnership,
+  updateMemberRole,
 } from "../controllers/team.controller.js";
 import protect from "../middlewares/auth.middleware.js";
 
@@ -16,6 +17,7 @@ router.use(protect);
 router.get("/", getMembers);
 router.post("/", addMember);
 router.delete("/:memberId", removeMember);
-router.patch("/:memberId/role", transferOwnership);
+router.patch("/:memberId/role", updateMemberRole);
+router.post("/:memberId/transfer", transferOwnership);
 
 export default router;

@@ -230,47 +230,46 @@ const Tickets = () => {
       {/* ── Stats ───────────────────────────────── */}
       {!isLoading && tickets.length > 0 && <StatsBar tickets={tickets} />}
 
-      {/* ── Filters ─────────────────────────────── */}
-      <div className="mb-4 flex flex-wrap gap-3">
-        {/* Status filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Status:</span>
-          <div className="flex gap-1">
-            {STATUS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setStatusFilter(opt.value)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                  statusFilter === opt.value
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-500 hover:text-slate-300"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+      {/* ── Filters and Stats ───────────────────────────── */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Status Filter */}
+          <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 p-1 pr-3">
+            <span className="ml-2 text-xs font-semibold uppercase text-slate-500">
+              Status
+            </span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-transparent text-sm font-medium text-white outline-none [&>option]:bg-slate-900"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
 
-        {/* Severity filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Severity:</span>
-          <div className="flex gap-1">
-            {SEVERITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setSeverityFilter(opt.value)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                  severityFilter === opt.value
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-500 hover:text-slate-300"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+          {/* Severity Filter */}
+          <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 p-1 pr-3">
+            <span className="ml-2 text-xs font-semibold uppercase text-slate-500">
+              Severity
+            </span>
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="bg-transparent text-sm font-medium text-white outline-none [&>option]:bg-slate-900"
+            >
+              {SEVERITY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
+        
       </div>
 
       {/* ── Error ───────────────────────────────── */}

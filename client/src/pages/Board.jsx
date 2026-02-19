@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { useGetProjectByIdQuery } from "../features/projects/projectApi";
 import { useGetTasksByProjectQuery } from "../features/tasks/taskApi";
 import BoardContainer from "../features/board/BoardContainer";
-import TaskDrawer from "../features/tasks/TaskDrawer";
+
+import TaskDetails from "../features/tasks/TaskDetails";
 
 import { AlertTriangle, Kanban } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
@@ -59,16 +60,34 @@ const Board = () => {
   const tasks = tasksData?.data || [];
   const isLoading = isProjectLoading || isTasksLoading;
 
-  // ── Task drawer state ──────────────────────────────
+  // ── Task drawer / details state ────────────────────
+  // Check URL query param for task
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+  // Sync with URL (optional enhancement for Phase 2, but good to have)
+  const searchParams = new URLSearchParams(window.location.search);
+  const taskParam = searchParams.get("task");
 
   const handleOpenTask = useCallback((taskId) => {
     setSelectedTaskId(taskId);
+    // Add to URL
+    const url = new URL(window.location);
+    url.searchParams.set("task", taskId);
+    window.history.pushState({}, "", url);
   }, []);
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedTaskId(null);
+    // Remove from URL
+    const url = new URL(window.location);
+    url.searchParams.delete("task");
+    window.history.pushState({}, "", url);
   }, []);
+
+  // Sync initial load from URL
+  useState(() => {
+     if (taskParam) setSelectedTaskId(taskParam);
+  });
 
   return (
     <div className="flex h-full flex-col">
@@ -109,7 +128,7 @@ const Board = () => {
       {isLoading && <BoardSkeleton />}
 
       {/* ── Board ───────────────────────────────── */}
-      {/* ── Board ───────────────────────────────── */}
+
       {!isLoading && !isProjectError && project ? (
         project.columns?.length === 0 ? (
           <div className="flex flex-1 items-center justify-center p-8">
@@ -131,8 +150,9 @@ const Board = () => {
         )
       ) : null}
 
-      {/* ── Task drawer ─────────────────────────── */}
-      <TaskDrawer
+
+      {/* ── Task Details Modal ──────────────────── */}
+      <TaskDetails
         taskId={selectedTaskId}
         isOpen={!!selectedTaskId}
         onClose={handleCloseDrawer}

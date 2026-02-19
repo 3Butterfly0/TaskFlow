@@ -15,8 +15,15 @@ export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
     baseUrl: "/api",
+    prepareHeaders: (headers, { getState }) => {
+      const token = getState().auth.token;
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
     credentials: "include", // send cookies with every request
   }),
-  tagTypes: ["User", "Project", "Task", "Ticket", "Member"],
+  tagTypes: ["User", "Project", "Team", "Task", "Ticket", "Notification"], // Added Notification
   endpoints: () => ({}), // injected by feature slices
 });

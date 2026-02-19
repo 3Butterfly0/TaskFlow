@@ -12,7 +12,11 @@ import Board from "../pages/Board";
 import Tickets from "../pages/Tickets";
 import Settings from "../pages/Settings";
 import Team from "../pages/Team";
+import Backlog from "../pages/Backlog";
 import AppSettings from "../pages/AppSettings";
+import GlobalIssues from "../pages/GlobalIssues";
+import Analytics from "../pages/Analytics";
+import ProjectLayout from "../components/layout/ProjectLayout";
 
 /**
  * Application router.
@@ -42,11 +46,16 @@ const AppRouter = () => {
           }
         >
           <Route index element={<Dashboard />} />
-          <Route path="projects/:projectId/board" element={<Board />} />
-          <Route path="projects/:projectId/tickets" element={<Tickets />} />
-          <Route path="projects/:projectId/team" element={<Team />} />
-          <Route path="projects/:projectId/settings" element={<Settings />} />
+          <Route path="projects/:projectId" element={<ProjectLayout />}>
+            <Route path="board" element={<Board />} />
+            <Route path="backlog" element={<Backlog />} />
+            <Route path="tickets" element={<Tickets />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="team" element={<Team />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
           <Route path="settings" element={<AppSettings />} />
+          <Route path="issues" element={<GlobalIssues />} />
         </Route>
       </Routes>
     </BrowserRouter>

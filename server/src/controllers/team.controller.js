@@ -28,6 +28,12 @@ export const getMembers = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
+    // Build roles map
+    const rolesMap = new Map();
+    if (project.roles) {
+      project.roles.forEach((r) => rolesMap.set(r.userId.toString(), r.role));
+    }
+
     // Build members list with roles
     const members = project.members.map((member) => ({
       _id: member._id,
@@ -38,8 +44,9 @@ export const getMembers = async (req, res, next) => {
       lastSeen: member.lastSeen,
       role:
         member._id.toString() === project.owner._id.toString()
-          ? "admin"
-          : "member",
+          ? "admin" // Owner is super-admin
+          : rolesMap.get(member._id.toString()) || "member",
+      isOwner: member._id.toString() === project.owner._id.toString(),
     }));
 
     res
@@ -70,9 +77,17 @@ export const addMember = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // ── Only owner can add members ───────────────────
-    if (project.owner.toString() !== userId) {
-      throw new ApiError(403, "Only the project owner can add members");
+    // ── Check permissions (Owner or Admin) ───────────
+    const isOwner = project.owner.toString() === userId;
+    const adminRole = project.roles.find(
+      (r) => r.userId.toString() === userId && r.role === "admin",
+    );
+
+    if (!isOwner && !adminRole) {
+      throw new ApiError(
+        403,
+        "Only the project owner or admins can add members",
+      );
     }
 
     // ── Find user by email ───────────────────────────
@@ -127,9 +142,27 @@ export const removeMember = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // ── Only owner can remove members ────────────────
-    if (project.owner.toString() !== userId) {
-      throw new ApiError(403, "Only the project owner can remove members");
+    // ── Check permissions (Owner or Admin) ───────────
+    const isOwner = project.owner.toString() === userId;
+    const adminRole = project.roles.find(
+      (r) => r.userId.toString() === userId && r.role === "admin",
+    );
+
+    if (!isOwner && !adminRole) {
+      throw new ApiError(
+        403,
+        "Only the project owner or admins can remove members",
+      );
+    }
+
+    // ── Check target role limitations ────────────────
+    const targetIsAdmin = project.roles.some(
+      (r) => r.userId.toString() === memberId && r.role === "admin",
+    );
+
+    // Admins cannot remove other Admins
+    if (adminRole && targetIsAdmin && !isOwner) {
+      throw new ApiError(403, "Admins cannot remove other admins");
     }
 
     // ── Cannot remove the owner ──────────────────────
@@ -198,6 +231,88 @@ export const transferOwnership = async (req, res, next) => {
     res
       .status(200)
       .json(new ApiResponse(200, null, "Ownership transferred successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// PATCH /api/projects/:projectId/members/:memberId/role
+// Update a member's role
+// ──────────────────────────────────────────────────────
+export const updateMemberRole = async (req, res, next) => {
+  try {
+    const { projectId, memberId } = req.params;
+    const { role } = req.body;
+    const userId = req.user.id;
+
+    if (!role || !["admin", "member", "observer"].includes(role)) {
+      throw new ApiError(400, "Invalid role");
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    // ── Check permissions (Owner or Admin) ───────────
+    const isOwner = project.owner.toString() === userId;
+    const myRole = project.roles?.find(
+      (r) => r.userId.toString() === userId && r.role === "admin",
+    );
+
+    if (!isOwner && !myRole) {
+      throw new ApiError(
+        403,
+        "Only the project owner or admins can change roles",
+      );
+    }
+
+    // ── Check target ─────────────────────────────────
+    if (memberId === project.owner.toString()) {
+      throw new ApiError(403, "Cannot change role of the owner");
+    }
+
+    // ── Admin restrictions ───────────────────────────
+    if (!isOwner) {
+      // Admins cannot target other Admins
+      const targetIsAdmin = project.roles?.find(
+        (r) => r.userId.toString() === memberId && r.role === "admin",
+      );
+      if (targetIsAdmin) {
+        throw new ApiError(403, "Admins cannot modify other admins");
+      }
+      // Admins cannot promote to Admin (only Owner can)
+      if (role === "admin") {
+        throw new ApiError(403, "Admins cannot promote users to admin");
+      }
+    }
+
+    // ── Update role ──────────────────────────────────
+    if (!project.roles) project.roles = []; // Ensure roles exists
+
+    const roleIndex = project.roles.findIndex(
+      (r) => r.userId.toString() === memberId,
+    );
+
+    if (roleIndex > -1) {
+      if (role === "member") {
+        project.roles.splice(roleIndex, 1); // Default role, remove explicit entry
+      } else {
+        project.roles[roleIndex].role = role;
+      }
+    } else if (role !== "member") {
+      project.roles.push({ userId: memberId, role });
+    }
+
+    await project.save();
+
+    // ── Emit socket event ────────────────────────────
+    emitToProject(projectId, "member.updated", { memberId, role });
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, { memberId, role }, "Role updated successfully"),
+      );
   } catch (error) {
     next(error);
   }
