@@ -1,19 +1,16 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useGetTasksByProjectQuery, useCreateTaskMutation, useUpdateTaskMutation } from "../features/tasks/taskApi";
 import { useGetProjectByIdQuery } from "../features/projects/projectApi";
 import { 
   Loader, 
-  Map, 
   Plus, 
-  MoreHorizontal, 
-  ChevronRight, 
   ChevronDown,
   Layout,
-  ArrowRight,
-  Users // Add this import
+  Users 
 } from "lucide-react";
-import TaskDetails from "../features/tasks/TaskDetails";
+import { Link } from "react-router-dom";
+import PromoteTaskModal from "../features/tasks/PromoteTaskModal";
 
 const Backlog = () => {
   const { projectId } = useParams();
@@ -26,27 +23,23 @@ const Backlog = () => {
   const project = projectData?.data;
   const tasks = tasksData?.data || [];
 
-  const [isSprintOpen, setIsSprintOpen] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [promoteTask, setPromoteTask] = useState(null);
 
   // Group tasks
-  const { boardTasks, backlogTasks } = useMemo(() => {
-    const board = [];
+  const { backlogTasks } = useMemo(() => {
     const backlog = [];
     tasks.forEach(t => {
       if (t.isInBacklog) backlog.push(t);
-      else board.push(t);
     });
-    return { boardTasks: board, backlogTasks: backlog };
+    return { backlogTasks: backlog };
   }, [tasks]);
 
   const handleCreateBacklogTask = async (e) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
     
-    // Find first column for default creation (even if in backlog, we need a columnId reference or we just use a placeholder?)
-    // The model requires columnId. Let's use the first column.
     const firstColId = project?.columns?.[0]?.id;
     if (!firstColId) return;
 
@@ -55,7 +48,7 @@ const Backlog = () => {
         title: newTaskTitle.trim(),
         projectId,
         columnId: firstColId,
-        isInBacklog: true, // Specific flag for backlog
+        isInBacklog: true, 
         priority: "medium"
       }).unwrap();
       setNewTaskTitle("");
@@ -65,11 +58,8 @@ const Backlog = () => {
   };
 
   const handleMoveToBoard = async (task) => {
-    await updateTask({ id: task._id, isInBacklog: false });
-  };
-
-  const handleMoveToBacklog = async (task) => {
-    await updateTask({ id: task._id, isInBacklog: true });
+    // Legacy direct move, now we use Promote Modal
+    setPromoteTask(task);
   };
 
   if (isLoading) return <div className="flex justify-center p-10"><Loader className="animate-spin text-slate-500" /></div>;
@@ -92,147 +82,137 @@ const Backlog = () => {
         </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
-        
-        {/* ── Active Sprint / Board Section ──────────────── */}
-        <div className="mb-8">
-          <div 
-            className="flex items-center gap-2 mb-3 cursor-pointer group"
-            onClick={() => setIsSprintOpen(!isSprintOpen)}
-          >
-            <div className="p-1 rounded hover:bg-slate-800 text-slate-400">
-              {isSprintOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-            </div>
-            <h2 className="text-lg font-semibold text-white">Board <span className="text-slate-500 text-sm font-normal ml-2">({boardTasks.length} issues)</span></h2>
-            <div className="flex-1 border-b border-slate-800 ml-4 group-hover:border-slate-700 transition-colors" />
-            <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded disabled:opacity-50">
-              Complete Sprint
-            </button>
-          </div>
+      <div className="flex-1 overflow-y-auto w-full custom-scrollbar">
+        <div className="p-8 max-w-7xl mx-auto">
+          {/* ── Backlog Section ────────────────────────────── */}
+          <div>
+             <div className="flex items-center justify-between mb-4">
+               <div className="flex items-center gap-2">
+                 <h2 className="text-xl font-bold text-white">Backlog</h2>
+                 <span className="text-slate-500 text-sm font-normal">({backlogTasks.length} issues)</span>
+               </div>
+             </div>
 
-          {isSprintOpen && (
-             <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden">
-               {boardTasks.length === 0 ? (
-                 <div className="p-8 text-center text-slate-500 text-sm border-dashed border-2 border-slate-800 m-4 rounded">
-                   Drag items here from backlog to start working on them.
-                 </div>
-               ) : (
-                 <div className="divide-y divide-slate-800">
-                   {boardTasks.map(task => (
+             <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden min-h-[200px]">
+                {/* Table Header */}
+                <div className="grid grid-cols-[1fr_2fr_120px_120px_120px_100px] gap-4 bg-slate-900/80 p-3 text-xs font-semibold uppercase text-slate-500 border-b border-slate-800">
+                  <div className="pl-2">Title</div>
+                  <div>Description</div>
+                  <div>Created By</div>
+                  <div>Created Date</div>
+                  <div>Due Date</div>
+                  <div className="text-right">Action</div>
+                </div>
+
+                <div className="divide-y divide-slate-800">
+                   {backlogTasks.map(task => (
                      <div 
                         key={task._id} 
-                        className="group flex items-center justify-between p-3 hover:bg-slate-800/50 transition-colors"
+                        className="group grid grid-cols-[1fr_2fr_120px_120px_120px_100px] gap-4 items-center p-3 hover:bg-slate-800/50 transition-colors"
                      >
-                       <div className="flex items-center gap-3">
-                         <span className="text-xs text-slate-500 px-2 py-0.5 bg-slate-800 rounded-full border border-slate-700">
-                             {project.columns?.find(c => c.id === task.columnId)?.title || "Unknown"}
-                           </span>
+                       {/* Title - Removed checkbox/priority indicator */}
+                       <div className="flex items-center gap-3 min-w-0 pl-2">
+                         <span className="font-medium text-slate-200 truncate" title={task.title}>{task.title}</span>
                        </div>
-                       <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleMoveToBacklog(task); }}
-                            className="text-xs text-slate-500 hover:text-white"
-                          >
-                             Move to Backlog
-                          </button>
+
+                       {/* Description (Clickable) */}
+                       <div 
+                         className="text-sm text-slate-500 truncate cursor-pointer hover:text-indigo-400 decoration-dotted hover:underline"
+                         onClick={() => setSelectedTaskId(task._id)}
+                       >
+                         {task.description || "No description"}
+                       </div>
+
+                       {/* Created By */}
+                       <div className="flex items-center gap-2">
                           {task.assignees?.[0] ? (
-                            <img 
-                              src={task.assignees[0].avatar || "https://ui-avatars.com/api/?name=" + task.assignees[0].username} 
-                              alt="Assignee" 
-                              className="size-6 rounded-full object-cover" 
-                            />
+                             <>
+                               <img 
+                                 src={task.assignees[0].avatar || "https://ui-avatars.com/api/?name=" + task.assignees[0].username} 
+                                 alt="User" 
+                                 className="size-5 rounded-full object-cover" 
+                               />
+                               <span className="text-xs text-slate-400 truncate">{task.assignees[0].username}</span>
+                             </>
                           ) : (
-                            <div className="size-6 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-500">
-                              <Users className="size-3" />
-                            </div>
+                             <span className="text-xs text-slate-600">-</span>
                           )}
-                          <span className="text-xs font-mono text-slate-600">#{task._id.slice(-4)}</span>
+                       </div>
+
+                       {/* Created Date */}
+                       <div className="text-xs text-slate-400">
+                         {new Date(task.createdAt || Date.now()).toLocaleDateString()}
+                       </div>
+
+                       {/* Due Date */}
+                       <div className={`text-xs ${task.dueDate ? 'text-slate-400' : 'text-slate-600'}`}>
+                         {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}
+                       </div>
+
+                       {/* Action */}
+                       <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button 
+                            onClick={(e) => { e.stopPropagation(); setPromoteTask(task); }}
+                            className="flex items-center gap-1 rounded bg-indigo-600/10 px-2 py-1 text-xs font-medium text-indigo-400 hover:bg-indigo-600/20"
+                          >
+                             Promote
+                          </button>
                        </div>
                      </div>
                    ))}
-                 </div>
-               )}
-             </div>
-          )}
-        </div>
-
-
-        {/* ── Backlog Section ────────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-             <div className="p-1 text-slate-400"><ChevronDown className="size-4" /></div>
-             <h2 className="text-lg font-semibold text-white">Backlog <span className="text-slate-500 text-sm font-normal ml-2">({backlogTasks.length} issues)</span></h2>
-             <div className="flex-1 border-b border-slate-800 ml-4" />
-          </div>
-
-          <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden min-h-[200px]">
-              <div className="divide-y divide-slate-800">
-                {backlogTasks.map(task => (
-                  <div 
-                     key={task._id} 
-                     className="group flex items-center justify-between p-3 hover:bg-slate-800/50 transition-colors cursor-pointer"
-                     onClick={() => setSelectedTaskId(task._id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`size-4 rounded-sm border-2 ${
-                        task.priority === 'high' ? 'border-red-500 bg-red-500/20' : 
-                        task.priority === 'medium' ? 'border-amber-500 bg-amber-500/20' : 
-                        'border-blue-500 bg-blue-500/20'
-                      }`} />
-                      <span 
-                        className="text-slate-200 font-medium cursor-pointer hover:underline hover:text-indigo-400"
-                        onClick={() => setSelectedTaskId(task._id)}
-                      >
-                        {task.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button 
-                         onClick={(e) => { e.stopPropagation(); handleMoveToBoard(task); }}
-                         className="text-xs text-slate-500 hover:text-indigo-400 font-medium flex items-center gap-1"
-                       >
-                          To Board <ArrowRight className="size-3" />
-                       </button>
-                       {task.assignees?.[0] ? (
-                            <img 
-                              src={task.assignees[0].avatar || "https://ui-avatars.com/api/?name=" + task.assignees[0].username} 
-                              alt="Assignee" 
-                              className="size-6 rounded-full object-cover" 
-                            />
-                        ) : (
-                            <div className="size-6 rounded-full bg-slate-800 flex items-center justify-center text-xs text-slate-500">
-                              <Users className="size-3" />
-                            </div>
-                        )}
-                       <span className="text-xs font-mono text-slate-600">#{task._id.slice(-4)}</span>
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Quick Create */}
-                <form onSubmit={handleCreateBacklogTask} className="p-0 border-t border-slate-800/50">
-                   <div className="relative">
-                      <Plus className="absolute left-3 top-3 size-4 text-slate-500" />
-                      <input
-                        className="w-full bg-transparent p-3 pl-10 text-sm text-white placeholder-slate-500 outline-none hover:bg-slate-800/30 focus:bg-slate-800/50 transition-colors"
-                        placeholder="Create issue"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                      />
-                   </div>
-                </form>
+                   
+                   {/* Quick Create */}
+                   <form onSubmit={handleCreateBacklogTask} className="p-0 border-t border-slate-800/50">
+                      <div className="relative">
+                         <Plus className="absolute left-3 top-3 size-4 text-slate-500" />
+                         <input
+                           className="w-full bg-transparent p-3 pl-10 text-sm text-white placeholder-slate-500 outline-none hover:bg-slate-800/30 focus:bg-slate-800/50 transition-colors"
+                           placeholder="Create issue"
+                           value={newTaskTitle}
+                           onChange={(e) => setNewTaskTitle(e.target.value)}
+                         />
+                      </div>
+                   </form>
+                </div>
              </div>
           </div>
         </div>
-
       </div>
       
-      <TaskDetails
-        taskId={selectedTaskId}
-        isOpen={!!selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
-        projectMembers={project.members || []}
-      />
+      {/* Sticky Note / Description Modal */}
+      {selectedTaskId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTaskId(null)}>
+          <div 
+             className="relative w-full max-w-md bg-yellow-100 text-yellow-900 rounded-lg shadow-xl p-6 rotate-1 transform transition-transform hover:rotate-0"
+             onClick={e => e.stopPropagation()}
+          >
+             <button 
+               onClick={() => setSelectedTaskId(null)}
+               className="absolute top-2 right-2 p-1 hover:bg-yellow-200/50 rounded-full"
+             >
+               <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+             </button>
+             <h3 className="font-bold text-lg mb-2 pr-6 font-serif">{tasks.find(t => t._id === selectedTaskId)?.title}</h3>
+             <div className="text-sm overflow-y-auto max-h-[60vh] whitespace-pre-wrap font-serif leading-relaxed">
+               {tasks.find(t => t._id === selectedTaskId)?.description || "No description provided."}
+             </div>
+             <div className="mt-4 pt-4 border-t border-yellow-200/50 text-xs text-yellow-800/60 flex justify-between">
+                <span>Created: {new Date(tasks.find(t => t._id === selectedTaskId)?.createdAt || Date.now()).toLocaleDateString()}</span>
+                <span className="cursor-pointer hover:underline" onClick={() => { setSelectedTaskId(null); setPromoteTask(tasks.find(t => t._id === selectedTaskId)); }}>Edit in Board (Promote first)</span>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promote Modal */}
+      {promoteTask && (
+        <PromoteTaskModal
+          isOpen={!!promoteTask}
+          onClose={() => setPromoteTask(null)}
+          task={promoteTask}
+          projectId={projectId}
+        />
+      )}
     </div>
   );
 };

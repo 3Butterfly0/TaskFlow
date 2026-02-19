@@ -66,7 +66,7 @@ const Dashboard = () => {
   const projects = data?.data || [];
 
   return (
-    <div>
+    <div className="p-6 h-full">
       {/* ── Page header ─────────────────────────── */}
       <div className="mb-8 flex items-center justify-between">
         <div>

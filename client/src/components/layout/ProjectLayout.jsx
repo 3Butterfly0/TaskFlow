@@ -31,13 +31,13 @@ const ProjectLayout = () => {
   return (
     <div className="flex h-full flex-col bg-slate-950">
       {/* ── Project Header ────────────────────────────── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-4">
+      <header className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-3">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-600 text-lg font-bold text-white shadow-lg shadow-indigo-900/20">
             {project.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white leading-tight">
+            <h1 className="text-2xl font-bold text-white leading-tight">
               {project.name}
             </h1>
             <p className="text-xs text-slate-500">Software Project</p>

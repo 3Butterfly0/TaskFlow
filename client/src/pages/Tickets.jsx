@@ -196,8 +196,8 @@ const Tickets = () => {
     error,
   } = useGetTicketsQuery({
     projectId,
-    status: statusFilter || undefined,
-    severity: severityFilter || undefined,
+    status: undefined, // undefined to fetch all tickets
+    severity: undefined, // undefined to fetch all tickets
   });
 
   const tickets = ticketsData?.data || [];
@@ -207,11 +207,11 @@ const Tickets = () => {
   const [promoteTicket, setPromoteTicket] = useState(null);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col w-full px-6">
       {/* ── Page header ─────────────────────────── */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 pt-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Tickets</h1>
+          <h1 className="text-xl font-bold text-white">Tickets</h1>
           <p className="mt-1 text-sm text-slate-400">
             Triage dashboard — manage issues and bugs
           </p>
@@ -233,15 +233,13 @@ const Tickets = () => {
       {/* ── Filters and Stats ───────────────────────────── */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Status Filter */}
-          <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 p-1 pr-3">
-            <span className="ml-2 text-xs font-semibold uppercase text-slate-500">
-              Status
-            </span>
+          
+          {/* Status Filter - Compact with Label on Right */}
+          <div className="relative inline-flex items-center rounded-lg border border-slate-700 bg-slate-900/50 hover:border-slate-600 transition-colors">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent text-sm font-medium text-white outline-none [&>option]:bg-slate-900"
+              className="appearance-none bg-transparent pl-3 pr-16 py-1.5 text-xs font-medium text-white outline-none cursor-pointer [&>option]:bg-slate-900"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -249,27 +247,32 @@ const Tickets = () => {
                 </option>
               ))}
             </select>
+            <div className="pointer-events-none absolute right-2 flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500">
+              <span>Status</span>
+              <svg className="size-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
 
-          {/* Severity Filter */}
-          <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 p-1 pr-3">
-            <span className="ml-2 text-xs font-semibold uppercase text-slate-500">
-              Severity
-            </span>
+          {/* Severity Filter - Compact with Label on Right */}
+          <div className="relative inline-flex items-center rounded-lg border border-slate-700 bg-slate-900/50 hover:border-slate-600 transition-colors">
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value)}
-              className="bg-transparent text-sm font-medium text-white outline-none [&>option]:bg-slate-900"
+              className="appearance-none bg-transparent pl-3 pr-20 py-1.5 text-xs font-medium text-white outline-none cursor-pointer [&>option]:bg-slate-900"
             >
               {SEVERITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                   {option.label}
                 </option>
               ))}
             </select>
+            <div className="pointer-events-none absolute right-2 flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500">
+              <span>Severity</span>
+              <svg className="size-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
+
         </div>
-        
       </div>
 
       {/* ── Error ───────────────────────────────── */}
@@ -305,10 +308,15 @@ const Tickets = () => {
         </div>
       )}
 
-      {/* ── Ticket list ─────────────────────────── */}
+      {/* ── Ticket list (Client-Side Filtered) ─────────────────────────── */}
       {!isLoading && !isError && tickets.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
-          {tickets.map((ticket) => (
+          {tickets
+            .filter(t => 
+              (!statusFilter || t.status === statusFilter) &&
+              (!severityFilter || t.severity === severityFilter)
+            )
+            .map((ticket) => (
             <TicketRow
               key={ticket._id}
               ticket={ticket}
@@ -316,6 +324,14 @@ const Tickets = () => {
               onPromote={setPromoteTicket}
             />
           ))}
+          {tickets.filter(t => 
+              (!statusFilter || t.status === statusFilter) &&
+              (!severityFilter || t.severity === severityFilter)
+            ).length === 0 && (
+              <div className="p-8 text-center text-slate-500 text-sm">
+                No tickets match the selected filters.
+              </div>
+            )}
         </div>
       )}
 
