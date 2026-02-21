@@ -14,6 +14,7 @@ const Header = () => {
   const { data } = useGetMeQuery();
   const [logout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const user = data?.data;
 
@@ -36,51 +37,72 @@ const Header = () => {
 
       {/* ── Right: user info + logout ──────────── */}
       <div className="flex items-center gap-4">
-        {user && (
+        {user ? (
           <>
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+              className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-1.5 text-[13px] text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
             >
               <Search className="size-4" />
-              <span className="hidden sm:inline">Search...</span>
-              <kbd className="hidden rounded bg-slate-800 px-1.5 text-xs font-semibold text-slate-500 sm:inline-block">
+              <span className="hidden sm:inline w-32 text-left">Search...</span>
+              <kbd className="hidden rounded bg-slate-800 px-1.5 text-[10px] font-semibold text-slate-500 sm:inline-block border border-slate-700">
                 /
               </kbd>
             </button>
             <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-            <NotificationBell />
-          </>
-        )}
-        {user ? (
-          <>
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={() => navigate("/settings")}
-                className="group flex size-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                title="Settings"
-              >
-                <Settings className="size-5" />
-              </button>
             
-              <div className="flex size-8 items-center justify-center rounded-full bg-indigo-600 text-sm font-medium text-white">
-                {user.username?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <span className="text-sm font-medium text-slate-300">
-                {user.username}
-              </span>
-            </div>
-
+            <NotificationBell />
+            
+            {/* Quick Settings Action (Optional to keep outside, but nicer inside dropdown - kept based on Jira) */}
             <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:border-slate-600 hover:text-slate-200 disabled:opacity-50"
+              onClick={() => navigate("/settings")}
+              className="flex size-8 items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Settings"
             >
-              {isLoggingOut ? "Logging out…" : "Log out"}
+              <Settings className="size-[18px]" />
             </button>
+
+            {/* Profile Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex size-8 items-center justify-center rounded-full bg-indigo-600 text-[13px] font-bold text-white ring-2 ring-slate-950 transition-transform hover:scale-105 overflow-hidden"
+              >
+                {user.avatar ? (
+                  <img src={user.avatar} alt="Avatar" className="size-full object-cover" />
+                ) : (
+                  user.username?.charAt(0).toUpperCase() || "U"
+                )}
+              </button>
+
+              {isProfileOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)} />
+                  <div className="absolute right-0 top-10 w-48 rounded-xl border border-slate-800 bg-slate-900 py-2 shadow-2xl z-50">
+                    <div className="px-4 py-2 border-b border-slate-800/60 mb-1">
+                       <p className="text-sm font-semibold text-white truncate">{user.username}</p>
+                       <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => { setIsProfileOpen(false); navigate("/settings?tab=profile"); }}
+                      className="w-full px-4 py-2 text-left text-[13px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                    >
+                      Profile Settings
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full px-4 py-2 text-left text-[13px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                    >
+                      {isLoggingOut ? "Logging out…" : "Log out"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </>
         ) : (
-          <div className="h-8 w-24 animate-pulse rounded bg-slate-800" />
+          <div className="flex items-center justify-center size-8 animate-pulse rounded-full bg-slate-800" />
         )}
       </div>
     </header>

@@ -13,16 +13,16 @@ const ProjectNavbar = () => {
   const { projectId } = useParams();
 
   return (
-    <nav className="flex items-center gap-1 border-b border-slate-800 bg-slate-950 px-6">
+    <nav className="flex items-center gap-6">
       {navItems.map((item) => (
         <NavLink
           key={item.path}
           to={`/projects/${projectId}/${item.path}`}
           className={({ isActive }) =>
-            `flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+            `flex items-center gap-2 border-b-[3px] py-3 text-sm font-medium transition-colors ${
               isActive
                 ? "border-indigo-500 text-indigo-400"
-                : "border-transparent text-slate-400 hover:border-slate-800 hover:text-slate-200"
+                : "border-transparent text-slate-400 hover:text-slate-200"
             }`
           }
         >

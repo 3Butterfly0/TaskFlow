@@ -12,9 +12,18 @@ import { createPortal } from "react-dom";
  *   onClose  – callback to close the modal
  *   title    – optional header text
  *   children – modal body content
+ *   size     - "sm" | "md" | "lg" | "xl" | "full"
  */
-const Modal = ({ isOpen, onClose, title, children }) => {
+const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
   const overlayRef = useRef(null);
+
+  const sizeClasses = {
+    sm: "max-w-sm",
+    md: "max-w-md",
+    lg: "max-w-lg",
+    xl: "max-w-2xl",
+    full: "max-w-4xl",
+  };
 
   // Close on Escape key
   useEffect(() => {
@@ -44,9 +53,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6"
     >
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
+      <div className={`w-full ${sizeClasses[size] || sizeClasses.md} flex flex-col max-h-[90vh] rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl`}>
         {/* ── Header ───────────────────────────── */}
         {title && (
           <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
@@ -64,7 +73,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         )}
 
         {/* ── Body ─────────────────────────────── */}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 flex-1 overflow-y-auto custom-scrollbar">{children}</div>
       </div>
     </div>,
     document.body

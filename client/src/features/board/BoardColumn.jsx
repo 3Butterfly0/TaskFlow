@@ -33,17 +33,17 @@ const BoardColumn = ({ column, taskMap, onOpen, isDoneColumn }) => {
 
   return (
     <div
-      className={`flex h-full w-72 shrink-0 flex-col rounded-xl bg-slate-900/50 border transition-colors ${
-        isOver ? "border-indigo-500/50 bg-indigo-500/5" : "border-slate-800"
+      className={`flex h-full w-[300px] shrink-0 flex-col rounded bg-slate-900 transition-colors ${
+        isOver ? "bg-slate-800/80 ring-2 ring-indigo-500/50" : ""
       }`}
     >
       {/* ── Column header ──────────────────────── */}
-      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+      <div className="flex items-center justify-between sticky top-0 px-3 py-3 z-10 rounded-t cursor-pointer hover:bg-slate-800/50 transition-colors">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">
             {column.title}
           </h3>
-          <span className="flex size-5 items-center justify-center rounded-full bg-slate-800 text-[11px] font-medium text-slate-400">
+          <span className="flex items-center justify-center text-xs font-semibold text-slate-500">
             {tasks.length}
           </span>
         </div>

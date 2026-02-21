@@ -1,26 +1,17 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ArrowDown, ArrowUp, AlertCircle, Equal, CheckSquare } from "lucide-react";
 
 /**
  * Task card rendered inside a board column.
  * Uses @dnd-kit/sortable to be draggable and reorderable.
- *
- * Per prd.md §3.5 – Task card displays:
- *   title, priority, assignees, dueDate
  */
 
-const priorityColors = {
-  low: "bg-slate-600",
-  medium: "bg-blue-600",
-  high: "bg-amber-600",
-  critical: "bg-red-600",
-};
-
-const priorityLabels = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  critical: "Critical",
+const priorityIcons = {
+  low: <ArrowDown className="size-3.5 text-blue-400" />,
+  medium: <Equal className="size-3.5 text-amber-500" />,
+  high: <ArrowUp className="size-3.5 text-red-500" />,
+  critical: <AlertCircle className="size-3.5 text-red-600" />,
 };
 
 const TaskCard = ({ task, isDragOverlay = false, onOpen, isDoneColumn }) => {
@@ -69,7 +60,7 @@ const TaskCard = ({ task, isDragOverlay = false, onOpen, isDoneColumn }) => {
     }
   };
 
-  const borderColor = isDoneColumn ? "border-emerald-500/50 shadow-emerald-500/10" : "border-slate-800";
+  const borderColor = isDoneColumn ? "border-emerald-500/30" : "border-slate-700/50";
 
   return (
     <div
@@ -78,7 +69,7 @@ const TaskCard = ({ task, isDragOverlay = false, onOpen, isDoneColumn }) => {
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`group cursor-grab rounded-lg border bg-slate-950 p-3.5 transition-all hover:bg-slate-900 active:cursor-grabbing ${borderColor} ${
+      className={`group cursor-grab rounded-lg bg-slate-950 p-3 transition-colors hover:bg-slate-900 border shadow-sm active:cursor-grabbing ${borderColor} ${
         isDragOverlay ? "rotate-2 shadow-2xl shadow-black/50 ring-2 ring-indigo-500/50" : ""
       }`}
     >
@@ -97,49 +88,37 @@ const TaskCard = ({ task, isDragOverlay = false, onOpen, isDoneColumn }) => {
       )}
 
       {/* ── Title ──────────────────────────────── */}
-      <h4 className="mb-2 text-sm font-medium text-white leading-snug">
+      <div className="mb-3 text-[13px] font-medium text-slate-200 leading-snug">
         {task.title}
-      </h4>
+      </div>
 
-      {/* ── Subtask progress ───────────────────── */}
+      {/* ── Subtask progress (minimal) ───────────── */}
       {hasSubtasks && (
-        <div className="mb-2.5">
-          <div className="mb-1 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Subtasks</span>
-            <span>
-              {subtasksDone}/{subtasksTotal}
-            </span>
-          </div>
-          <div className="h-1 w-full rounded-full bg-slate-800">
-            <div
-              className="h-1 rounded-full bg-indigo-500 transition-all"
-              style={{
-                width: `${(subtasksDone / subtasksTotal) * 100}%`,
-              }}
-            />
-          </div>
+        <div className="mb-3 flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+           <CheckSquare className="size-3.5 text-slate-500" />
+           <span>{subtasksDone}/{subtasksTotal}</span>
         </div>
       )}
 
-      {/* ── Footer: priority + assignees + due ── */}
-      <div className="flex items-center justify-between">
+      {/* ── Footer: ID, Priority, assignees ── */}
+      <div className="flex items-center justify-between mt-1">
         <div className="flex items-center gap-2">
-          {/* Priority badge */}
+          {/* Priority icon */}
           {task.priority && (
-            <span
-              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold text-white ${priorityColors[task.priority]}`}
-            >
-              {priorityLabels[task.priority]}
-            </span>
+             <div title={task.priority} className="flex items-center justify-center">
+               {priorityIcons[task.priority]}
+             </div>
           )}
 
-          {/* Due date */}
+          {/* Task ID (Jira style) */}
+          <span className="text-[11.5px] font-medium text-slate-500 hover:text-indigo-400 transition-colors">
+            TF-{task._id.slice(-4).toUpperCase()}
+          </span>
+
+          {/* Due date if near */}
           {task.dueDate && (
-            <span className="text-[11px] text-slate-500">
-              {new Date(task.dueDate).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
+            <span className="ml-1 text-[10px] text-slate-500 bg-slate-800/80 px-1.5 py-0.5 rounded">
+              {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
         </div>
@@ -151,13 +130,17 @@ const TaskCard = ({ task, isDragOverlay = false, onOpen, isDoneColumn }) => {
               <div
                 key={user._id}
                 title={user.username}
-                className="flex size-6 items-center justify-center rounded-full border-2 border-slate-950 bg-slate-700 text-[10px] font-medium text-white"
+                className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-950 bg-indigo-500/20 text-[9px] font-bold text-indigo-400"
               >
-                {user.username?.charAt(0).toUpperCase() || "?"}
+                {user.avatar ? (
+                  <img src={user.avatar} className="size-full rounded-full object-cover" />
+                ) : (
+                  user.username?.charAt(0).toUpperCase() || "?"
+                )}
               </div>
             ))}
             {task.assignees.length > 3 && (
-              <div className="flex size-6 items-center justify-center rounded-full border-2 border-slate-950 bg-slate-600 text-[10px] font-medium text-white">
+              <div className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-950 bg-slate-800 text-[9px] font-medium text-white">
                 +{task.assignees.length - 3}
               </div>
             )}

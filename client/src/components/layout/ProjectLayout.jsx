@@ -30,31 +30,39 @@ const ProjectLayout = () => {
 
   return (
     <div className="flex h-full flex-col bg-slate-950">
-      {/* ── Project Header ────────────────────────────── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-600 text-lg font-bold text-white shadow-lg shadow-indigo-900/20">
-            {project.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white leading-tight">
+      {/* ── Project Header & Nav ──────────────────────── */}
+      <header className="flex shrink-0 flex-col bg-slate-950 px-8 pt-6 pb-0 shadow-sm border-b border-slate-800">
+        <div className="mb-2 flex items-center gap-2 text-[13px] font-medium text-slate-500">
+          <Link to="/" className="hover:underline hover:text-indigo-400">Workspaces</Link>
+          <span>/</span>
+          <span className="text-slate-400">{project.name}</span>
+        </div>
+        
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded bg-indigo-500/20 text-xl font-bold text-indigo-400 border border-indigo-500/30">
+              {project.name.charAt(0).toUpperCase()}
+            </div>
+            <h1 className="text-2xl font-semibold text-slate-100 tracking-tight">
               {project.name}
             </h1>
-            <p className="text-xs text-slate-500">Software Project</p>
           </div>
           
           <Link
             to={`/projects/${projectId}/settings`}
-            className="ml-2 flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="flex items-center gap-2 rounded bg-slate-800/40 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors border border-slate-700/50"
             title="Project Settings"
           >
             <Settings className="size-4" />
+            Settings
           </Link>
         </div>
-      </header>
 
-      {/* ── Tabs ──────────────────────────────────────── */}
-      <ProjectNavbar />
+        {/* ── Tabs ──────────────────────────────────────── */}
+        <div className="-mb-px">
+          <ProjectNavbar />
+        </div>
+      </header>
 
       {/* ── Page Content ──────────────────────────────── */}
       <div className="flex-1 overflow-hidden">

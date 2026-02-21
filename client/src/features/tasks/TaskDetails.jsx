@@ -8,6 +8,7 @@ import {
   useUpdateTaskMutation,
   useAddCommentMutation,
   useDeleteTaskMutation,
+  useMoveTaskMutation,
 } from "./taskApi";
 import { selectCurrentUser } from "../auth/authSlice";
 import FileUploader from "../../components/ui/FileUploader";
@@ -31,7 +32,7 @@ const TABS = [
   { id: "history", label: "History", icon: Activity },
 ];
 
-const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
+const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColumns = [] }) => {
   const overlayRef = useRef(null);
   const { data, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, {
     skip: !taskId || !isOpen,
@@ -39,6 +40,7 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
   const [updateTask, { isLoading: isSaving }] = useUpdateTaskMutation();
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
   const [addComment, { isLoading: isCommentLoading }] = useAddCommentMutation();
+  const [moveTask] = useMoveTaskMutation();
   const currentUser = useSelector(selectCurrentUser);
 
   const task = data?.data;
@@ -270,12 +272,42 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
                         <input
                           type="checkbox"
                           checked={sub.isCompleted}
-                          onChange={() => {
+                          onChange={async () => {
                             const updated = subtasks.map((s, i) =>
                               i === idx ? { ...s, isCompleted: !s.isCompleted } : s
                             );
                             setSubtasks(updated);
                             handleSave({ subtasks: updated });
+
+                            // Check auto-complete
+                            const allComplete = updated.length > 0 && updated.every(s => s.isCompleted);
+                            if (allComplete) {
+                              const doneCol = projectColumns.find(c => c.title.toLowerCase() === "done");
+                              // Ensure it's not already in the Done column
+                              if (doneCol && task.columnId !== doneCol.id) {
+                                if (window.confirm("All subtasks are complete. Move task to Done?")) {
+                                  try {
+                                     // source column is task.columnId
+                                     const sourceCol = projectColumns.find(c => c.id === task.columnId);
+                                     if (sourceCol) {
+                                        const newSourceTaskIds = sourceCol.taskIds.filter(id => id !== task._id);
+                                        const newDestTaskIds = [...doneCol.taskIds, task._id];
+                                        
+                                        await moveTask({
+                                          projectId: task.projectId,
+                                          taskId: task._id,
+                                          sourceColumnId: sourceCol.id,
+                                          destinationColumnId: doneCol.id,
+                                          newSourceTaskIds,
+                                          newDestinationTaskIds: newDestTaskIds,
+                                        }).unwrap();
+                                     }
+                                  } catch (err) {
+                                     console.error("Failed to auto-move task to Done", err);
+                                  }
+                                }
+                              }
+                            }
                           }}
                           className="size-4 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
                         />
@@ -417,15 +449,37 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [] }) => {
 
               {/* ── Right Column: Meta Info ──────────── */}
               <div className="w-80 border-l border-slate-800 bg-slate-900/20 p-6 overflow-y-auto hidden md:block">
-                {/* Status Dropdown (Placeholder for now, assumes Kanban columns) */}
+                {/* Status Dropdown (Mapping to Column) */}
                 <div className="mb-6">
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Status
                   </label>
-                  <div className="rounded bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200">
-                    {/* In a real app, map columnId to column title */}
-                    Current Status ({task.columnId})
-                  </div>
+                  <select
+                    value={task.columnId || ""}
+                    onChange={async (e) => {
+                       const destColId = e.target.value;
+                       if (destColId === task.columnId) return;
+                       const sourceCol = projectColumns.find(c => c.id === task.columnId);
+                       const destCol = projectColumns.find(c => c.id === destColId);
+                       if (sourceCol && destCol) {
+                          const newSourceTaskIds = sourceCol.taskIds.filter(id => id !== task._id);
+                          const newDestTaskIds = [...destCol.taskIds, task._id];
+                          await moveTask({
+                            projectId: task.projectId,
+                            taskId: task._id,
+                            sourceColumnId: sourceCol.id,
+                            destinationColumnId: destCol.id,
+                            newSourceTaskIds,
+                            newDestinationTaskIds: newDestTaskIds,
+                          });
+                       }
+                    }}
+                    className="w-full rounded bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                     {projectColumns.map((col) => (
+                        <option key={col.id} value={col.id}>{col.title}</option>
+                     ))}
+                  </select>
                 </div>
 
                 {/* Assignees */}
