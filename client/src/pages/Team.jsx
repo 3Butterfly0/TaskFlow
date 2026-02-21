@@ -6,10 +6,12 @@ import {
   useGetMembersQuery,
   useRemoveMemberMutation,
   useTransferOwnershipMutation,
+  useUpdateMemberRoleMutation,
 } from "../features/team/teamApi";
 import InviteMemberModal from "../features/team/InviteMemberModal";
+import AssignedTasksModal from "../features/team/AssignedTasksModal";
 import useSocket from "../hooks/useSocket";
-import { Users, AlertTriangle, Search, UserPlus } from "lucide-react";
+import { Users, AlertTriangle, Search, UserPlus, ListTodo } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import EmptyState from "../components/ui/EmptyState";
 
@@ -100,158 +102,7 @@ const StatsBar = ({ members }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════
-   MemberCard
-   ═══════════════════════════════════════════════════════ */
-const MemberCard = ({
-  member,
-  currentUser,
-  amIOwner,
-  amIAdmin,
-  onRemove,
-  onTransfer,
-  onUpdateRole,
-}) => {
-  const isSelf = member._id === currentUser?._id;
-  const isTargetOwner = member.isOwner;
-  const isTargetAdmin = member.role === "admin";
-
-  // Permissions
-  // Owner can manage everyone (except self here).
-  // Admin can manage non-admins/non-owners.
-  const canManageRole =
-    !isSelf &&
-    !isTargetOwner &&
-    (amIOwner || (amIAdmin && !isTargetAdmin));
-
-  const canRemove = canManageRole; // Same logic for removal
-  const canTransfer = amIOwner && !isSelf;
-
-  const getInitials = (name) =>
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-
-  const timeAgo = (dateStr) => {
-    if (!dateStr) return "Never";
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
-
-  return (
-    <div className="group flex items-center gap-4 rounded-xl border border-slate-800/60 bg-slate-900/40 px-5 py-4 transition-colors hover:border-slate-700/60 hover:bg-slate-900/70">
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        {member.avatar ? (
-          <img
-            src={member.avatar}
-            alt={member.username}
-            className="size-11 rounded-full object-cover ring-2 ring-slate-800"
-          />
-        ) : (
-          <div className="flex size-11 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white ring-2 ring-slate-800">
-            {getInitials(member.username)}
-          </div>
-        )}
-        {/* Online indicator */}
-        {member.isOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full border-2 border-slate-900 bg-emerald-500" />
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-semibold text-white">
-            {member.username}
-          </p>
-          {isSelf && (
-            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-500">
-              You
-            </span>
-          )}
-          {member.isOwner && (
-             <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-500">
-               Owner
-             </span>
-          )}
-        </div>
-        <p className="truncate text-xs text-slate-500">{member.email}</p>
-      </div>
-
-      {/* Role Manager */}
-      {canManageRole ? (
-        <div className="relative">
-          <select
-            value={member.role}
-            onChange={(e) => onUpdateRole(member._id, e.target.value)}
-            className="h-7 rounded-lg border border-slate-700 bg-slate-800/50 pl-2 pr-8 text-xs font-medium text-slate-300 outline-none transition-colors focus:border-indigo-500 focus:bg-slate-800 focus:text-white"
-          >
-            <option value="admin">Admin</option>
-            <option value="member">Member</option>
-            <option value="observer">Observer</option>
-          </select>
-           {/* Custom arrow if desired, or simpler native select */}
-           <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">
-            <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-           </div>
-        </div>
-      ) : (
-        <RoleBadge role={member.role} />
-      )}
-
-      {/* Last seen */}
-      <div className="hidden w-24 text-right sm:block">
-        <p className="text-xs text-slate-500">
-          {member.isOnline ? (
-            <span className="text-emerald-400">Online</span>
-          ) : (
-            timeAgo(member.lastSeen)
-          )}
-        </p>
-      </div>
-
-      {/* Actions */}
-      {(canTransfer || canRemove) && (
-        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          {canTransfer && (
-            <button
-              onClick={() => onTransfer(member)}
-              title="Transfer Ownership"
-              className="flex size-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-amber-500/10 hover:text-amber-400"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            </button>
-          )}
-          {canRemove && (
-            <button
-              onClick={() => onRemove(member)}
-              title="Remove member"
-              className="flex size-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <line x1="17" y1="11" x2="22" y2="11" />
-              </svg>
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+// MemberCard was removed in favor of a table layout
 
 /* ═══════════════════════════════════════════════════════
    ConfirmDialog
@@ -309,6 +160,7 @@ const Team = () => {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
   const [transferTarget, setTransferTarget] = useState(null);
+  const [tasksMember, setTasksMember] = useState(null);
 
   const members = useMemo(() => {
     if (!membersData?.data) return [];
@@ -460,7 +312,8 @@ const Team = () => {
       </div>
 
       {/* ── Members list ────────────────────────────── */}
-      <div className="space-y-2">
+      {/* ── Members list (Table format) ────────────────────────────── */}
+      <div className="overflow-x-auto rounded-xl border border-slate-800/60 bg-slate-900/40">
         {filteredMembers.length === 0 ? (
           <div className="py-8">
             <EmptyState
@@ -471,18 +324,122 @@ const Team = () => {
             />
           </div>
         ) : (
-          filteredMembers.map((member) => (
-            <MemberCard
-              key={member._id}
-              member={member}
-              currentUser={currentUser}
-              amIOwner={amIOwner}
-              amIAdmin={amIAdmin}
-              onRemove={setRemoveTarget}
-              onTransfer={setTransferTarget}
-              onUpdateRole={handleUpdateRole}
-            />
-          ))
+          <table className="w-full text-left text-sm text-slate-400">
+            <thead className="bg-slate-900/80 text-xs uppercase text-slate-500 border-b border-slate-800/80">
+              <tr>
+                <th className="px-5 py-4 font-semibold">Member</th>
+                <th className="px-5 py-4 font-semibold">Role</th>
+                <th className="px-5 py-4 font-semibold">Status / Last Seen</th>
+                <th className="px-5 py-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {filteredMembers.map((member) => {
+                const isSelf = member._id === currentUser?._id;
+                const isTargetOwner = member.isOwner;
+                const isTargetAdmin = member.role === "admin";
+                const canManageRole = !isSelf && !isTargetOwner && (amIOwner || (amIAdmin && !isTargetAdmin));
+                const canRemove = canManageRole;
+                const canTransfer = amIOwner && !isSelf;
+
+                const getInitials = (name) => name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+                
+                const timeAgo = (dateStr) => {
+                  if (!dateStr) return "Never";
+                  const diff = Date.now() - new Date(dateStr).getTime();
+                  const minutes = Math.floor(diff / 60000);
+                  if (minutes < 1) return "Just now";
+                  if (minutes < 60) return `${minutes}m ago`;
+                  const hours = Math.floor(minutes / 60);
+                  if (hours < 24) return `${hours}h ago`;
+                  const days = Math.floor(hours / 24);
+                  return `${days}d ago`;
+                };
+
+                return (
+                  <tr key={member._id} className="group transition-colors hover:bg-slate-800/30">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative shrink-0">
+                          {member.avatar ? (
+                            <img src={member.avatar} alt={member.username} className="size-9 rounded-full object-cover ring-2 ring-slate-800" />
+                          ) : (
+                            <div className="flex size-9 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white ring-2 ring-slate-800">
+                              {getInitials(member.username)}
+                            </div>
+                          )}
+                          {member.isOnline && <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-slate-900 bg-emerald-500" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white">{member.username}</p>
+                            {isSelf && <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-500">You</span>}
+                            {member.isOwner && <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-500">Owner</span>}
+                          </div>
+                          <p className="text-xs text-slate-500">{member.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {canManageRole ? (
+                        <div className="relative inline-block w-32">
+                          <select
+                            value={member.role}
+                            onChange={(e) => handleUpdateRole(member._id, e.target.value)}
+                            className="w-full appearance-none rounded-lg border border-slate-700 bg-slate-800/50 py-1.5 pl-3 pr-8 text-xs font-medium text-slate-300 outline-none transition-colors focus:border-indigo-500 focus:bg-slate-800 focus:text-white"
+                          >
+                            <option value="admin">Admin</option>
+                            <option value="member">Member</option>
+                            <option value="observer">Observer</option>
+                          </select>
+                          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                            <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                          </div>
+                        </div>
+                      ) : (
+                        <RoleBadge role={member.role} />
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {member.isOnline ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                          <div className="size-1.5 rounded-full bg-emerald-400" /> Online
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-500">{timeAgo(member.lastSeen)}</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setTasksMember(member)}
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:bg-slate-700 hover:text-white"
+                        >
+                          <ListTodo className="size-3.5" />
+                          <span className="hidden sm:inline">Tasks</span>
+                        </button>
+                        
+                        {(canTransfer || canRemove) && (
+                          <div className="flex gap-1 border-l border-slate-800 pl-2 ml-1">
+                            {canTransfer && (
+                              <button onClick={() => setTransferTarget(member)} title="Transfer Ownership" className="rounded p-1.5 text-slate-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                              </button>
+                            )}
+                            {canRemove && (
+                              <button onClick={() => setRemoveTarget(member)} title="Remove member" className="rounded p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="17" y1="11" x2="22" y2="11" /></svg>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
@@ -514,6 +471,13 @@ const Team = () => {
         onConfirm={handleTransfer}
         onCancel={() => setTransferTarget(null)}
         isLoading={isTransferring}
+      />
+
+      <AssignedTasksModal
+        isOpen={!!tasksMember}
+        onClose={() => setTasksMember(null)}
+        member={tasksMember}
+        projectId={projectId}
       />
     </div>
   );

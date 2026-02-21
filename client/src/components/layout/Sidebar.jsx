@@ -3,7 +3,7 @@ import { useGetMeQuery } from "../../features/auth/authApi";
 import { Pin } from "lucide-react";
 
 const mainNav = [
-  { label: "Dashboard", to: "/", icon: "grid" },
+  { label: "Workspaces", to: "/", icon: "grid" },
   { label: "Issues", to: "/issues", icon: "ticket" },
 ];
 

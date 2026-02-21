@@ -7,10 +7,12 @@ import {
   Plus, 
   ChevronDown,
   Layout,
-  Users 
+  Users,
+  Calendar
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PromoteTaskModal from "../features/tasks/PromoteTaskModal";
+import Modal from "../components/ui/Modal";
 
 const Backlog = () => {
   const { projectId } = useParams();
@@ -26,15 +28,26 @@ const Backlog = () => {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [promoteTask, setPromoteTask] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState("");
 
-  // Group tasks
+  // Group and filter tasks
   const { backlogTasks } = useMemo(() => {
-    const backlog = [];
+    let backlog = [];
     tasks.forEach(t => {
       if (t.isInBacklog) backlog.push(t);
     });
+
+    if (dateFilter) {
+      backlog = backlog.filter(t => {
+        const taskDate = t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : 
+                         new Date(t.createdAt).toISOString().split('T')[0];
+        return taskDate === dateFilter;
+      });
+    }
+
     return { backlogTasks: backlog };
-  }, [tasks]);
+  }, [tasks, dateFilter]);
 
   const handleCreateBacklogTask = async (e) => {
     e.preventDefault();
@@ -52,6 +65,7 @@ const Backlog = () => {
         priority: "medium"
       }).unwrap();
       setNewTaskTitle("");
+      setIsCreateModalOpen(false);
     } catch (err) {
       console.error("Failed to create task", err);
     }
@@ -86,10 +100,39 @@ const Backlog = () => {
         <div className="p-8 max-w-7xl mx-auto">
           {/* ── Backlog Section ────────────────────────────── */}
           <div>
-             <div className="flex items-center justify-between mb-4">
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                <div className="flex items-center gap-2">
                  <h2 className="text-xl font-bold text-white">Backlog</h2>
                  <span className="text-slate-500 text-sm font-normal">({backlogTasks.length} issues)</span>
+               </div>
+               
+               <div className="flex items-center gap-3">
+                 <div className="relative">
+                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500 pointer-events-none" />
+                   <input
+                     type="date"
+                     value={dateFilter}
+                     onChange={(e) => setDateFilter(e.target.value)}
+                     className="rounded-lg pl-9 pr-3 py-1.5 border border-slate-700 bg-slate-800 text-sm text-slate-300 outline-none focus:border-indigo-500 scheme-dark"
+                     title="Filter by date (Created/Due)"
+                   />
+                   {dateFilter && (
+                     <button 
+                       onClick={() => setDateFilter("")}
+                       className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs"
+                     >
+                       ✕
+                     </button>
+                   )}
+                 </div>
+                 
+                 <button
+                   onClick={() => setIsCreateModalOpen(true)}
+                   className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-600/30"
+                 >
+                   <Plus className="size-4" />
+                   Create Backlog
+                 </button>
                </div>
              </div>
 
@@ -150,10 +193,10 @@ const Backlog = () => {
                        </div>
 
                        {/* Action */}
-                       <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                       <div className="flex justify-end transition-opacity">
                          <button 
                             onClick={(e) => { e.stopPropagation(); setPromoteTask(task); }}
-                            className="flex items-center gap-1 rounded bg-indigo-600/10 px-2 py-1 text-xs font-medium text-indigo-400 hover:bg-indigo-600/20"
+                            className="flex items-center gap-1 rounded bg-indigo-600/20 px-2 py-1 text-xs font-medium text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/20"
                           >
                              Promote
                           </button>
@@ -161,18 +204,6 @@ const Backlog = () => {
                      </div>
                    ))}
                    
-                   {/* Quick Create */}
-                   <form onSubmit={handleCreateBacklogTask} className="p-0 border-t border-slate-800/50">
-                      <div className="relative">
-                         <Plus className="absolute left-3 top-3 size-4 text-slate-500" />
-                         <input
-                           className="w-full bg-transparent p-3 pl-10 text-sm text-white placeholder-slate-500 outline-none hover:bg-slate-800/30 focus:bg-slate-800/50 transition-colors"
-                           placeholder="Create issue"
-                           value={newTaskTitle}
-                           onChange={(e) => setNewTaskTitle(e.target.value)}
-                         />
-                      </div>
-                   </form>
                 </div>
              </div>
           </div>
@@ -213,6 +244,42 @@ const Backlog = () => {
           projectId={projectId}
         />
       )}
+
+      {/* Create Backlog Modal */}
+      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Create Backlog Item">
+        <form onSubmit={handleCreateBacklogTask} className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+              Title
+            </label>
+            <input
+              type="text"
+              autoFocus
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-2.5 text-sm text-white outline-none focus:border-indigo-500"
+              placeholder="e.g., Update homepage banner"
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!newTaskTitle.trim()}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+            >
+              Create Issue
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
