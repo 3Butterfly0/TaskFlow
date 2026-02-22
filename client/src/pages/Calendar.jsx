@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -16,6 +16,9 @@ const Calendar = () => {
   const [updateTask] = useUpdateTaskMutation();
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+  const calendarRef = useRef(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const tasks = tasksData?.data || [];
   const project = projectData?.data;
@@ -71,12 +74,44 @@ const Calendar = () => {
 
   return (
     <div className="flex h-full flex-col bg-slate-950 p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Calendar</h1>
-        <p className="text-sm text-slate-400">View and manage task deadlines via drag-and-drop.</p>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-white tracking-tight">
+          {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+        </h1>
+        <div className="flex gap-2">
+          <select 
+            value={currentDate.getMonth()} 
+            onChange={(e) => {
+              const d = new Date(currentDate);
+              d.setMonth(parseInt(e.target.value, 10));
+              calendarRef.current?.getApi().gotoDate(d);
+            }}
+            className="rounded bg-slate-800 px-3 py-1 text-sm font-medium text-slate-200 outline-none border border-slate-700 hover:border-slate-600 transition-colors"
+          >
+            {Array.from({length: 12}).map((_, i) => (
+              <option key={i} value={i}>
+                {new Date(0, i).toLocaleString('default', { month: 'long' })}
+              </option>
+            ))}
+          </select>
+          <select 
+            value={currentDate.getFullYear()} 
+            onChange={(e) => {
+              const d = new Date(currentDate);
+              d.setFullYear(parseInt(e.target.value, 10));
+              calendarRef.current?.getApi().gotoDate(d);
+            }}
+            className="rounded bg-slate-800 px-3 py-1 text-sm font-medium text-slate-200 outline-none border border-slate-700 hover:border-slate-600 transition-colors"
+          >
+            {Array.from({length: 10}).map((_, i) => {
+              const year = new Date().getFullYear() - 5 + i;
+              return <option key={year} value={year}>{year}</option>;
+            })}
+          </select>
+        </div>
       </div>
 
-      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-hidden calendar-wrapper custom-scrollbar">
+      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-visible calendar-wrapper custom-scrollbar">
         <style dangerouslySetInnerHTML={{__html: `
           .fc {
             --fc-page-bg-color: transparent;
@@ -114,23 +149,25 @@ const Calendar = () => {
           .fc-daygrid-event { border-radius: 4px; padding: 2px 4px; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: opacity 0.2s; border: none !important; }
           .fc-daygrid-event:hover { opacity: 0.9; }
           .fc-daygrid-dot-event { border-radius: 4px; padding: 2px 4px; }
-          .fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 700; color: #f8fafc; }
+          .fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 700; color: #f8fafc; display: none; }
           .fc-button { text-transform: capitalize; border-radius: 6px !important; font-weight: 500 !important; font-size: 0.875rem !important; transition: all 0.2s; }
           .fc-button-primary:not(:disabled).fc-button-active, .fc-button-primary:not(:disabled):active { box-shadow: none !important; }
           .fc-button-primary:focus { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5) !important; }
         `}} />
         <FullCalendar
+          ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           events={events}
           editable={true}
           droppable={true}
+          datesSet={(dateInfo) => setCurrentDate(dateInfo.view.currentStart)}
           eventDrop={handleEventDrop}
           eventClick={handleEventClick}
           headerToolbar={{
-            left: "title",
+            left: "",
             center: "",
-            right: "prev,next today"
+            right: "today prev,next"
           }}
           height="100%"
           dayMaxEvents={3}

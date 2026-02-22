@@ -15,7 +15,7 @@ const ProjectNavbar = () => {
   const { projectId } = useParams();
 
   return (
-    <nav className="flex items-center gap-6">
+    <nav className="flex items-center gap-10">
       {navItems.map((item) => (
         <NavLink
           key={item.path}

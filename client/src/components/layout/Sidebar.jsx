@@ -144,7 +144,9 @@ const Sidebar = () => {
         {recentProjects.length > 0 && (
           <div className="flex flex-col gap-1">
             {collapsed ? (
-               <div className="mx-auto mt-4 mb-2 h-px w-8 bg-slate-800" />
+               <div className="mx-auto mt-4 mb-2 flex items-center justify-center text-slate-500" title="Recent">
+                 <Clock className="size-5" />
+               </div>
             ) : (
               <button 
                 onClick={() => setRecentOpen(!recentOpen)}
@@ -174,7 +176,9 @@ const Sidebar = () => {
         {pinnedProjects.length > 0 && (
           <div className="flex flex-col gap-1">
              {collapsed ? (
-               <div className="mx-auto mt-4 mb-2 h-px w-8 bg-slate-800" />
+               <div className="mx-auto mt-4 mb-2 flex items-center justify-center text-slate-500" title="Pinned">
+                 <Pin className="size-5" />
+               </div>
              ) : (
                 <button 
                   onClick={() => setPinnedOpen(!pinnedOpen)}

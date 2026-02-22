@@ -210,12 +210,6 @@ const Tickets = () => {
     <div className="flex h-full flex-col w-full px-6">
       {/* ── Page header ─────────────────────────── */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 pt-6">
-        <div>
-          <h1 className="text-xl font-bold text-white">Tickets</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Triage dashboard — manage issues and bugs
-          </p>
-        </div>
         <button
           onClick={() => setShowRaiseModal(true)}
           className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-colors hover:bg-indigo-500"
@@ -223,17 +217,10 @@ const Tickets = () => {
           <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Raise Issue
+          + Ticket
         </button>
-      </div>
 
-      {/* ── Stats ───────────────────────────────── */}
-      {!isLoading && tickets.length > 0 && <StatsBar tickets={tickets} />}
-
-      {/* ── Filters and Stats ───────────────────────────── */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-wrap items-center gap-4">
-          
           {/* Status Filter - Compact with Label on Right */}
           <div className="relative inline-flex items-center rounded-lg border border-slate-700 bg-slate-900/50 hover:border-slate-600 transition-colors">
             <select
@@ -271,9 +258,13 @@ const Tickets = () => {
               <svg className="size-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
           </div>
-
         </div>
       </div>
+
+      {/* ── Stats ───────────────────────────────── */}
+      {!isLoading && tickets.length > 0 && <StatsBar tickets={tickets} />}
+
+
 
       {/* ── Error ───────────────────────────────── */}
       {isError && (
