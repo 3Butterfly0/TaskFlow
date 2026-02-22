@@ -5,7 +5,7 @@ import { clearCredentials } from "../../features/auth/authSlice";
 import { baseApi } from "../../app/baseApi";
 import NotificationBell from "./NotificationBell";
 import { Settings, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchModal from "../search/SearchModal";
 
 const Header = () => {
@@ -17,6 +17,18 @@ const Header = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const user = data?.data;
+
+  // Listen for Ctrl+K or Cmd+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -45,8 +57,8 @@ const Header = () => {
             >
               <Search className="size-4" />
               <span className="hidden sm:inline w-32 text-left">Search...</span>
-              <kbd className="hidden rounded bg-slate-800 px-1.5 text-[10px] font-semibold text-slate-500 sm:inline-block border border-slate-700">
-                /
+              <kbd className="hidden rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 sm:inline-block border border-slate-700">
+                ⌘K
               </kbd>
             </button>
             <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />

@@ -1,9 +1,11 @@
 import { NavLink, useParams } from "react-router-dom";
-import { Layout, List, Ticket, BarChart2, Users } from "lucide-react";
+import { Layout, List, Ticket, BarChart2, Users, Archive, Calendar as CalendarIcon } from "lucide-react";
 
 const navItems = [
   { label: "Board", path: "board", icon: Layout },
+  { label: "Calendar", path: "calendar", icon: CalendarIcon },
   { label: "Backlog", path: "backlog", icon: List },
+  { label: "History", path: "history", icon: Archive },
   { label: "Tickets", path: "tickets", icon: Ticket },
   { label: "Analytics", path: "analytics", icon: BarChart2 },
   { label: "Team", path: "team", icon: Users },

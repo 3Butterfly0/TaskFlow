@@ -160,6 +160,37 @@ const taskSchema = new mongoose.Schema(
       },
     ],
 
+    // ── History & Status Fields ───────────────────────
+    status: {
+      type: String,
+      enum: ["active", "completed", "cancelled", "rejected"],
+      default: "active",
+    },
+    reporter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+    rejectedAt: {
+      type: Date,
+      default: null,
+    },
+    cancellationReason: {
+      type: String,
+      default: null,
+    },
+    rejectionReason: {
+      type: String,
+      default: null,
+    },
+
     // ── Embedded sub-documents ────────────────────────
     attachments: [attachmentSchema],
     subtasks: [subtaskSchema],
@@ -177,6 +208,7 @@ taskSchema.index({ columnId: 1 });
 taskSchema.index({ assignees: 1 });
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ priority: 1 });
+taskSchema.index({ status: 1 });
 
 // Compound index – accelerates board rendering
 taskSchema.index({ projectId: 1, columnId: 1 });

@@ -13,6 +13,36 @@ export const taskApi = baseApi.injectEndpoints({
           : [{ type: "Task", id: "LIST" }],
     }),
 
+    getHistoryTasks: builder.query({
+      query: (projectId) =>
+        `/tasks?projectId=${projectId}&status=completed,cancelled,rejected`,
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...result.data.map(({ _id }) => ({ type: "Task", id: _id })),
+              { type: "Task", id: "HISTORY_LIST" },
+            ]
+          : [{ type: "Task", id: "HISTORY_LIST" }],
+    }),
+
+    getMyTasks: builder.query({
+      query: (params) => {
+        const queryParams = new URLSearchParams();
+        if (params?.status) queryParams.append("status", params.status);
+        if (params?.priority) queryParams.append("priority", params.priority);
+        if (params?.projectId)
+          queryParams.append("projectId", params.projectId);
+        return `/tasks/my-tasks?${queryParams.toString()}`;
+      },
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...result.data.map(({ _id }) => ({ type: "Task", id: _id })),
+              { type: "Task", id: "GLOBAL_LIST" },
+            ]
+          : [{ type: "Task", id: "GLOBAL_LIST" }],
+    }),
+
     getTaskById: builder.query({
       query: (id) => `/tasks/${id}`,
       providesTags: (_result, _error, id) => [{ type: "Task", id }],
@@ -93,6 +123,8 @@ export const taskApi = baseApi.injectEndpoints({
 
 export const {
   useGetTasksByProjectQuery,
+  useGetHistoryTasksQuery,
+  useGetMyTasksQuery,
   useGetTaskByIdQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,

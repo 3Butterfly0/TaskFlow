@@ -36,13 +36,52 @@ export const getTasksByProject = async (req, res, next) => {
     }
 
     // ── Fetch tasks ────────────────────────────────────
-    const tasks = await Task.find({ projectId })
+    const query = { projectId };
+    if (req.query.status) {
+      query.status = { $in: req.query.status.split(",") };
+    }
+
+    const tasks = await Task.find(query)
       .populate("assignees", "username email avatar")
+      .populate("reporter", "username email avatar")
       .lean();
 
     res
       .status(200)
       .json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// GET /api/tasks/my-tasks
+// Returns all tasks assigned to the current user globally
+// ──────────────────────────────────────────────────────
+export const getMyTasks = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { status, priority, projectId } = req.query;
+
+    const query = { assignees: userId };
+
+    if (status) query.status = { $in: status.split(",") };
+    // By default, only show "active" tasks if no status is specified
+    else query.status = "active";
+
+    if (priority) query.priority = { $in: priority.split(",") };
+    if (projectId) query.projectId = projectId;
+
+    const tasks = await Task.find(query)
+      .populate("projectId", "name")
+      .populate("assignees", "username email avatar")
+      .populate("reporter", "username email avatar")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, tasks, "My tasks fetched successfully"));
   } catch (error) {
     next(error);
   }
@@ -219,6 +258,9 @@ export const createTask = async (req, res, next) => {
       projectId,
       columnId,
       assignees: assignees || [],
+      reporter: userId,
+      status: column.title.toLowerCase() === "done" ? "completed" : "active",
+      completedAt: column.title.toLowerCase() === "done" ? Date.now() : null,
       dueDate: dueDate || null,
       labels: labels || [],
       isInBacklog: !!req.body.isInBacklog,
@@ -309,10 +351,33 @@ export const updateTask = async (req, res, next) => {
       "subtasks",
       "attachments",
       "isInBacklog",
+      "status",
+      "cancellationReason",
+      "rejectionReason",
     ];
 
     // ── Build activity log entries for tracked changes ─
     const logEntries = [];
+
+    if (updates.status && updates.status !== task.status) {
+      logEntries.push({
+        type: "status_changed",
+        actorId: userId,
+        metadata: { from: task.status, to: updates.status },
+      });
+
+      if (updates.status === "completed") {
+        task.completedAt = Date.now();
+      } else if (updates.status === "cancelled") {
+        task.cancelledAt = Date.now();
+      } else if (updates.status === "rejected") {
+        task.rejectedAt = Date.now();
+      } else if (updates.status === "active") {
+        task.completedAt = null;
+        task.cancelledAt = null;
+        task.rejectedAt = null;
+      }
+    }
 
     if (updates.priority && updates.priority !== task.priority) {
       logEntries.push({
@@ -561,6 +626,25 @@ export const moveAcrossColumns = async (req, res, next) => {
     }
 
     task.columnId = destinationColumnId;
+
+    const destTitle = destColumn.title.toLowerCase();
+    if (destTitle === "done" && task.status !== "completed") {
+      task.status = "completed";
+      task.completedAt = Date.now();
+      task.activityLog.push({
+        type: "status_changed",
+        actorId: userId,
+        metadata: { from: "active", to: "completed" },
+      });
+    } else if (destTitle !== "done" && task.status === "completed") {
+      task.status = "active";
+      task.completedAt = null;
+      task.activityLog.push({
+        type: "status_changed",
+        actorId: userId,
+        metadata: { from: "completed", to: "active" },
+      });
+    }
 
     // Add activity log entry for the move
     task.activityLog.push({

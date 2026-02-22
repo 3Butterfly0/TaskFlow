@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getTasksByProject,
+  getMyTasks,
   getTaskById,
   createTask,
   updateTask,
@@ -18,6 +19,7 @@ router.use(protect);
 
 // ── Board data ───────────────────────────────────────
 router.get("/", getTasksByProject);
+router.get("/my-tasks", getMyTasks);
 
 // ── Board ordering (must be before /:id) ─────────────
 router.patch("/reorder", reorderInsideColumn);

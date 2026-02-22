@@ -13,6 +13,8 @@ import Tickets from "../pages/Tickets";
 import Settings from "../pages/Settings";
 import Team from "../pages/Team";
 import Backlog from "../pages/Backlog";
+import History from "../pages/History";
+import Calendar from "../pages/Calendar";
 import AppSettings from "../pages/AppSettings";
 import GlobalIssues from "../pages/GlobalIssues";
 import Analytics from "../pages/Analytics";
@@ -48,7 +50,9 @@ const AppRouter = () => {
           <Route index element={<Dashboard />} />
           <Route path="projects/:projectId" element={<ProjectLayout />}>
             <Route path="board" element={<Board />} />
+            <Route path="calendar" element={<Calendar />} />
             <Route path="backlog" element={<Backlog />} />
+            <Route path="history" element={<History />} />
             <Route path="tickets" element={<Tickets />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="team" element={<Team />} />
