@@ -20,10 +20,8 @@ const Backlog = () => {
   const { data: tasksData, isLoading } = useGetTasksByProjectQuery(projectId);
   
   const [createTask] = useCreateTaskMutation();
-  const [updateTask] = useUpdateTaskMutation();
-  
   const project = projectData?.data;
-  const tasks = tasksData?.data || [];
+  const tasks = useMemo(() => tasksData?.data || [], [tasksData]);
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -71,10 +69,7 @@ const Backlog = () => {
     }
   };
 
-  const handleMoveToBoard = async (task) => {
-    // Legacy direct move, now we use Promote Modal
-    setPromoteTask(task);
-  };
+
 
   if (isLoading) return <div className="flex justify-center p-10"><Loader className="animate-spin text-slate-500" /></div>;
   if (!project) return <div className="text-center p-10 text-slate-500">Project not found</div>;
@@ -171,7 +166,7 @@ const Backlog = () => {
 
                        {/* Created Date */}
                        <div className="text-xs text-slate-400">
-                         {new Date(task.createdAt || Date.now()).toLocaleDateString()}
+                         {new Date(task.createdAt || new Date()).toLocaleDateString()}
                        </div>
 
                        {/* Due Date */}
@@ -215,7 +210,7 @@ const Backlog = () => {
                {tasks.find(t => t._id === selectedTaskId)?.description || "No description provided."}
              </div>
              <div className="mt-4 pt-4 border-t border-yellow-200/50 text-xs text-yellow-800/60 flex justify-between">
-                <span>Created: {new Date(tasks.find(t => t._id === selectedTaskId)?.createdAt || Date.now()).toLocaleDateString()}</span>
+                <span>Created: {new Date(tasks.find(t => t._id === selectedTaskId)?.createdAt || new Date()).toLocaleDateString()}</span>
                 <span className="cursor-pointer hover:underline" onClick={() => { setSelectedTaskId(null); setPromoteTask(tasks.find(t => t._id === selectedTaskId)); }}>Edit in Board (Promote first)</span>
              </div>
           </div>

@@ -54,7 +54,7 @@ const Calendar = () => {
     try {
       await updateTask({ id: taskId, projectId, dueDate: newDate.toISOString() }).unwrap();
       toast.success("Task due date updated.");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update task date.");
       info.revert(); // revert visual change if API fails
     }

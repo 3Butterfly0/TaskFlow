@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
+import rateLimit from "express-rate-limit";
 
 import requestLogger from "./middlewares/logger.middleware.js";
 import errorHandler from "./middlewares/error.middleware.js";
@@ -16,6 +19,10 @@ import uploadRoutes from "./routes/upload.routes.js";
 import searchRoutes from "./routes/search.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
+import {
+  projectInvitationRoutes,
+  invitationRoutes,
+} from "./routes/invitation.routes.js";
 
 /**
  * Express application factory.
@@ -40,6 +47,19 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 app.use(requestLogger);
 
+// Security: Headers
+app.use(helmet());
+
+// Security: Prevent NoSQL injection
+app.use(mongoSanitize());
+
+// Security: Rate limiting for auth
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
+
 // ── Health Check ─────────────────────────────────────
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
@@ -54,12 +74,14 @@ app.get("/api/health", (_req, res) => {
 });
 
 // ── API Routes ───────────────────────────────────────
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/projects/:projectId/members", teamRoutes);
+app.use("/api/projects/:projectId/invitations", projectInvitationRoutes);
+app.use("/api/invitations", invitationRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);

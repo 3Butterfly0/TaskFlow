@@ -110,7 +110,7 @@ export const taskApi = baseApi.injectEndpoints({
         url: `/tasks/${taskId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, taskId) => [
+      invalidatesTags: () => [
         { type: "Task", id: "LIST" },
         { type: "Project", id: "LIST" }, // Or specific project if available? We don't have projectId in arg easily unless passed.
         // Usually Project ID is needed to invalidate specific Project.

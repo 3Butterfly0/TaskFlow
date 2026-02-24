@@ -4,7 +4,7 @@ export const teamApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMembers: builder.query({
       query: (projectId) => `/projects/${projectId}/members`,
-      providesTags: (result, _error, projectId) =>
+      providesTags: (result) =>
         result?.data
           ? [
               ...result.data.map(({ _id }) => ({ type: "Member", id: _id })),

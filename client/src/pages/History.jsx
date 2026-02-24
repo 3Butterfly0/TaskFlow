@@ -24,18 +24,7 @@ const History = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="size-4 text-emerald-500" />;
-      case "cancelled":
-        return <ArchiveX className="size-4 text-slate-500" />;
-      case "rejected":
-        return <XCircle className="size-4 text-red-500" />;
-      default:
-        return null;
-    }
-  };
+
 
   const getStatusBadge = (status) => {
     switch (status) {

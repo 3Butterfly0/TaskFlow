@@ -628,22 +628,35 @@ export const moveAcrossColumns = async (req, res, next) => {
     task.columnId = destinationColumnId;
 
     const destTitle = destColumn.title.toLowerCase();
-    if (destTitle === "done" && task.status !== "completed") {
-      task.status = "completed";
+
+    // Map column titles to status enums
+    let newStatus = task.status;
+    if (destTitle.includes("done") || destTitle.includes("complete")) {
+      newStatus = "completed";
       task.completedAt = Date.now();
-      task.activityLog.push({
-        type: "status_changed",
-        actorId: userId,
-        metadata: { from: "active", to: "completed" },
-      });
-    } else if (destTitle !== "done" && task.status === "completed") {
-      task.status = "active";
+    } else if (destTitle.includes("progress") || destTitle.includes("doing")) {
+      newStatus = "in_progress";
       task.completedAt = null;
+    } else if (
+      destTitle.includes("todo") ||
+      destTitle.includes("to do") ||
+      destTitle.includes("backlog")
+    ) {
+      newStatus = "todo";
+      task.completedAt = null;
+    } else {
+      // Default to active for other column types
+      newStatus = "active";
+      task.completedAt = null;
+    }
+
+    if (newStatus !== task.status) {
       task.activityLog.push({
         type: "status_changed",
         actorId: userId,
-        metadata: { from: "completed", to: "active" },
+        metadata: { from: task.status, to: newStatus },
       });
+      task.status = newStatus;
     }
 
     // Add activity log entry for the move
