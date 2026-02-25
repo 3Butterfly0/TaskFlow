@@ -2,7 +2,7 @@ import Notification from "../models/Notification.model.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
 
-// ── GET /api/notifications ───────────────────────────
+// GET /api/notifications
 export const getNotifications = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -40,14 +40,12 @@ export const getNotifications = async (req, res, next) => {
   }
 };
 
-// ── PATCH /api/notifications/:id/read ────────────────
+// PATCH /api/notifications/:id/read
 export const markAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Use bulk update for "mark all as read" logic if needed,
-    // but for now, mark single ID
     let notification;
     if (id === "all") {
       await Notification.updateMany(
@@ -72,7 +70,7 @@ export const markAsRead = async (req, res, next) => {
   }
 };
 
-// ── Internal helper function ─────────────────────────
+// Internal helper function
 export const createNotification = async ({
   recipient,
   sender,
@@ -82,7 +80,7 @@ export const createNotification = async ({
   message,
 }) => {
   try {
-    if (String(recipient) === String(sender)) return; // Don't notify self
+    if (String(recipient) === String(sender)) return;
 
     const notification = await Notification.create({
       recipient,

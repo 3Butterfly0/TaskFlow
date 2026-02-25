@@ -4,14 +4,14 @@ import ApiError from "../utils/ApiError.js";
 // Protect middleware – verifies JWT from HttpOnly cookie.
 const protect = async (req, _res, next) => {
   try {
-    // ── Extract token from cookie ─────────────────────
+    // Extract token from cookie
     const token = req.cookies?.token;
 
     if (!token) {
       throw new ApiError(401, "Not authenticated – no token provided");
     }
 
-    // ── Verify token ──────────────────────────────────
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Attach minimal user payload to request

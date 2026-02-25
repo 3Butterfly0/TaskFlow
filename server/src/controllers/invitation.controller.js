@@ -1,15 +1,13 @@
 import crypto from "crypto";
 import Project from "../models/Project.model.js";
 import User from "../models/User.model.js";
-import {Invitation} from "../models/Invitation.model.js";
+import { Invitation } from "../models/Invitation.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
-import {sendEmail} from "../utils/email.js";
+import { sendEmail } from "../utils/email.js";
 
-// ──────────────────────────────────────────────────────
 // POST /api/projects/:projectId/invitations
 // Owner/Admin invites a user by email
-// ──────────────────────────────────────────────────────
 export const createInvitation = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -25,25 +23,16 @@ export const createInvitation = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // Role check: Only owner or admin can invite
-    // Usually members array has a structure or just ObjectIds. Since members array in Project.model.js right now is just ObjectId array,
-    // everyone is basically a member. Wait, team.controller defines permissions. Let's assume Owner + members for now based on team controller logic.
     const isOwner = project.owner.toString() === inviterId;
     if (!isOwner) {
-      // Check if they are admin in future if schema has roles. For now, enforce Owner only to match typical rigid behavior.
-      // Let's check team.controller which says owner or admin role (if we had roles). Since we don't, just owner.
-      // Actually `team.controller.js` has some logic. Assume owner for strict security, or if 'adminRole = true' later.
       if (!isOwner)
         throw new ApiError(403, "Only project owners can invite new members");
     }
 
-    // Check if user is already a member
     const targetUser = await User.findOne({ email });
     if (targetUser && project.members.includes(targetUser._id)) {
       throw new ApiError(400, "User is already a member of this project");
     }
-
-    // Check if active invitation already exists
     const existingInvite = await Invitation.findOne({
       projectId,
       inviteeEmail: email,
@@ -58,10 +47,9 @@ export const createInvitation = async (req, res, next) => {
       );
     }
 
-    // Generate token
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour TTL
+    expiresAt.setHours(expiresAt.getHours() + 24);
 
     const invitation = await Invitation.create({
       projectId,
@@ -72,11 +60,9 @@ export const createInvitation = async (req, res, next) => {
       expiresAt,
     });
 
-    // Determine the accept link (Client URL + route)
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const acceptLink = `${clientUrl}/accept-invite?token=${token}`;
 
-    // Send email
     await sendEmail({
       to: email,
       subject: `You've been invited to join project: ${project.name}`,
@@ -97,10 +83,8 @@ export const createInvitation = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // GET /api/projects/:projectId/invitations
 // List pending invitations
-// ──────────────────────────────────────────────────────
 export const getProjectInvitations = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -130,15 +114,11 @@ export const getProjectInvitations = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/invitations/:token/accept
-// Invitee accepts the invitation. Token is public.
-// But they must be logged into TaskFlow to actually join.
-// ──────────────────────────────────────────────────────
 export const acceptInvitation = async (req, res, next) => {
   try {
     const { token } = req.params;
-    const userId = req.user.id; // User must exist and be authenticated to call this
+    const userId = req.user.id;
 
     const invitation = await Invitation.findOne({ token, status: "pending" });
 
@@ -157,15 +137,13 @@ export const acceptInvitation = async (req, res, next) => {
       throw new ApiError(404, "Project no longer exists");
     }
 
-    // Add to project members if not already
     if (!project.members.includes(userId)) {
       project.members.push(userId);
       await project.save();
     }
 
-    // Mark accepted
     invitation.status = "accepted";
-    invitation.inviteeUserId = userId; // Associate definitely
+    invitation.inviteeUserId = userId;
     await invitation.save();
 
     res
@@ -182,10 +160,7 @@ export const acceptInvitation = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // DELETE /api/invitations/:id
-// Cancel an invitation
-// ──────────────────────────────────────────────────────
 export const cancelInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;

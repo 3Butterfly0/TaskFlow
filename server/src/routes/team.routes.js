@@ -13,7 +13,7 @@ const router = Router({ mergeParams: true });
 // All team routes are protected
 router.use(protect);
 
-// ── Team routes ──────────────────────────────────────
+// Team routes
 router.get("/", getMembers);
 router.post("/", addMember);
 router.delete("/:memberId", removeMember);

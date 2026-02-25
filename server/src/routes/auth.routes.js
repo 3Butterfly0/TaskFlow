@@ -9,12 +9,12 @@ import protect from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// ── Public routes ────────────────────────────────────
+// Public routes
 router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
 
-// ── Protected routes ─────────────────────────────────
+// Protected routes
 router.get("/me", protect, getMe);
 
 // TODO: Google OAuth routes (Phase 2+)

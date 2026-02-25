@@ -13,34 +13,34 @@ import logger from "../utils/logger.js";
  */
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, _req, res, _next) => {
-  // ── Default values ────────────────────────────────
+  // Default values
   let statusCode = err.statusCode || 500;
   let message = err.message || "Internal Server Error";
 
-  // ── Mongoose: bad ObjectId ────────────────────────
+  // Mongoose: bad ObjectId
   if (err.name === "CastError") {
     statusCode = 400;
     message = `Invalid ${err.path}: ${err.value}`;
   }
 
-  // ── Mongoose: duplicate key ───────────────────────
+  // Mongoose: duplicate key
   if (err.code === 11000) {
     statusCode = 409;
     const field = Object.keys(err.keyValue).join(", ");
     message = `Duplicate value for field(s): ${field}`;
   }
 
-  // ── Mongoose: validation error ────────────────────
+  // Mongoose: validation error
   if (err.name === "ValidationError") {
     statusCode = 400;
     const messages = Object.values(err.errors).map((e) => e.message);
     message = messages.join(". ");
   }
 
-  // ── Log the error ─────────────────────────────────
+  // Log the error
   logger.error(err);
 
-  // ── Send response ─────────────────────────────────
+  // Send response
   res.status(statusCode).json({
     success: false,
     error: {

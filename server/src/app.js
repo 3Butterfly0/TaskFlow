@@ -9,7 +9,7 @@ import requestLogger from "./middlewares/logger.middleware.js";
 import errorHandler from "./middlewares/error.middleware.js";
 import ApiError from "./utils/ApiError.js";
 
-// ── Route imports ────────────────────────────────────
+// Route imports
 import authRoutes from "./routes/auth.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import taskRoutes from "./routes/task.routes.js";
@@ -35,7 +35,7 @@ import {
  */
 const app = express();
 
-// ── Global Middleware ────────────────────────────────
+// Global Middleware
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -60,7 +60,7 @@ const authLimiter = rateLimit({
   message: "Too many requests from this IP, please try again after 15 minutes",
 });
 
-// ── Health Check ─────────────────────────────────────
+// Health Check
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
     success: true,
@@ -73,7 +73,7 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-// ── API Routes ───────────────────────────────────────
+// API Routes
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
@@ -86,12 +86,12 @@ app.use("/api/search", searchRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// ── 404 Catch-All ────────────────────────────────────
+// 404 Catch-All
 app.all("*", (req, _res, next) => {
   next(new ApiError(404, `Route not found: ${req.originalUrl}`));
 });
 
-// ── Global Error Handler (must be last) ──────────────
+// Global Error Handler (must be last)
 app.use(errorHandler);
 
 export default app;

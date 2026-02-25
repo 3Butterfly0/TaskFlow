@@ -19,12 +19,12 @@ const logger = createLogger({
   ),
   defaultMeta: { service: "taskflow-server" },
   transports: [
-    // ── Console (always) ─────────────────────────────
+    // Console (always)
     new transports.Console({
       format: combine(colorize(), logFormat),
     }),
 
-    // ── File: errors ─────────────────────────────────
+    // File: errors
     new transports.File({
       filename: "logs/error.log",
       level: "error",
@@ -32,7 +32,7 @@ const logger = createLogger({
       maxFiles: 5,
     }),
 
-    // ── File: combined ───────────────────────────────
+    // File: combined
     new transports.File({
       filename: "logs/combined.log",
       maxsize: 5_242_880,

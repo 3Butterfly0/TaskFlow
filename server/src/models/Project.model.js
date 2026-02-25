@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
-// ── Column sub-schema (embedded) ─────────────────────
+// Column sub-schema (embedded)
 const columnSchema = new mongoose.Schema(
   {
     id: {
@@ -22,7 +22,7 @@ const columnSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// ── Project schema ───────────────────────────────────
+// Project schema
 const projectSchema = new mongoose.Schema(
   {
     name: {
@@ -61,7 +61,7 @@ const projectSchema = new mongoose.Schema(
       ],
     },
 
-    // ── Member Roles (for permissions) ──────────────────
+    // Member Roles (for permissions)
     roles: [
       {
         userId: {
@@ -76,7 +76,7 @@ const projectSchema = new mongoose.Schema(
       },
     ],
 
-    // ── Production enhancements (per production-blueprint.md §4) ──
+    // Production enhancements (per production-blueprint.md §4)
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -98,7 +98,7 @@ const projectSchema = new mongoose.Schema(
   },
 );
 
-// ── Indexes (per production-blueprint.md §4) ──────────
+// Indexes (per production-blueprint.md §4)
 projectSchema.index({ owner: 1 });
 projectSchema.index({ members: 1 });
 projectSchema.index({ archived: 1 });

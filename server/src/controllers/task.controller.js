@@ -5,14 +5,6 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { emitToProject } from "../config/socket.js";
 import { createNotification } from "./notification.controller.js";
 
-// ──────────────────────────────────────────────────────
-// GET /api/tasks?projectId=xxx
-// Returns all tasks for a project (used by board rendering)
-//
-// Per production-blueprint.md §2:
-//   Board = Project.columns (order) + Tasks (data)
-//   Compound index { projectId, columnId } accelerates this query
-// ──────────────────────────────────────────────────────
 export const getTasksByProject = async (req, res, next) => {
   try {
     const { projectId } = req.query;
@@ -21,7 +13,6 @@ export const getTasksByProject = async (req, res, next) => {
       throw new ApiError(400, "projectId query parameter is required");
     }
 
-    // ── Access check ───────────────────────────────────
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
@@ -35,7 +26,6 @@ export const getTasksByProject = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Fetch tasks ────────────────────────────────────
     const query = { projectId };
     if (req.query.status) {
       query.status = { $in: req.query.status.split(",") };
@@ -54,10 +44,7 @@ export const getTasksByProject = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // GET /api/tasks/my-tasks
-// Returns all tasks assigned to the current user globally
-// ──────────────────────────────────────────────────────
 export const getMyTasks = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -66,7 +53,6 @@ export const getMyTasks = async (req, res, next) => {
     const query = { assignees: userId };
 
     if (status) query.status = { $in: status.split(",") };
-    // By default, only show "active" tasks if no status is specified
     else query.status = "active";
 
     if (priority) query.priority = { $in: priority.split(",") };
@@ -87,11 +73,7 @@ export const getMyTasks = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // GET /api/tasks/:id
-// Returns a single task with populated references
-// (used by task drawer / detail view)
-// ──────────────────────────────────────────────────────
 export const getTaskById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -105,7 +87,6 @@ export const getTaskById = async (req, res, next) => {
       throw new ApiError(404, "Task not found");
     }
 
-    // ── Access check ───────────────────────────────────
     const project = await Project.findById(task.projectId);
     if (!project) {
       throw new ApiError(404, "Associated project not found");
@@ -125,14 +106,7 @@ export const getTaskById = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/tasks/:id/comments
-// Add a comment to a task (embedded sub-document)
-//
-// Per architecture.md §4:
-//   Comment (embedded) – small list, suitable for embedding
-// Per production-blueprint.md §5 – structured activity log
-// ──────────────────────────────────────────────────────
 export const addComment = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -148,7 +122,6 @@ export const addComment = async (req, res, next) => {
       throw new ApiError(404, "Task not found");
     }
 
-    // ── Access check ───────────────────────────────────
     const project = await Project.findById(task.projectId);
     if (!project) {
       throw new ApiError(404, "Associated project not found");
@@ -160,13 +133,10 @@ export const addComment = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Push comment ───────────────────────────────────
     task.comments.push({
       text: text.trim(),
       user: userId,
     });
-
-    // ── Activity log ───────────────────────────────────
     task.activityLog.push({
       type: "comment_added",
       actorId: userId,
@@ -178,7 +148,6 @@ export const addComment = async (req, res, next) => {
 
     const newComment = task.comments[task.comments.length - 1];
 
-    // ── Emit socket event (after DB success) ──────────
     emitToProject(task.projectId.toString(), "comment.added", {
       projectId: task.projectId,
       taskId: id,
@@ -186,7 +155,6 @@ export const addComment = async (req, res, next) => {
       comment: newComment,
     });
 
-    // ── Notify Assignees (excluding self) ──────────────
     const assigneesToNotify = task.assignees.filter(
       (assigneeId) => assigneeId.toString() !== userId,
     );
@@ -209,10 +177,7 @@ export const addComment = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/tasks
-// Creates a task and appends its ID to the target column
-// ──────────────────────────────────────────────────────
 export const createTask = async (req, res, next) => {
   try {
     const {
@@ -226,12 +191,9 @@ export const createTask = async (req, res, next) => {
       labels,
     } = req.body;
 
-    // ── Validation ────────────────────────────────────
     if (!title || !projectId || !columnId) {
       throw new ApiError(400, "title, projectId, and columnId are required");
     }
-
-    // ── Verify project exists and user has access ─────
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
@@ -244,13 +206,10 @@ export const createTask = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Verify column exists in project ───────────────
     const column = project.columns.find((col) => col.id === columnId);
     if (!column) {
       throw new ApiError(404, `Column "${columnId}" not found in project`);
     }
-
-    // ── Create task ───────────────────────────────────
     const task = await Task.create({
       title,
       content,
@@ -273,23 +232,19 @@ export const createTask = async (req, res, next) => {
       ],
     });
 
-    // ── Append task ID to column's taskIds (ONLY if not in backlog) ──
     if (!req.body.isInBacklog) {
       column.taskIds.push(task._id.toString());
       await project.save();
     }
-
-    // ── Populate references for response ──────────────
     await task.populate("assignees", "username email avatar");
 
-    // ── Emit socket event (after DB success) ──────────
+    // Emit socket event (after DB success)
     emitToProject(projectId, "task.created", {
       task,
       task,
       columnId,
     });
 
-    // ── Notify Assignees ──────────────────────────────
     if (assignees && assignees.length > 0) {
       for (const assigneeId of assignees) {
         await createNotification({
@@ -311,23 +266,17 @@ export const createTask = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // PATCH /api/tasks/:id
-// Update task fields (not for reordering/moving)
-// ──────────────────────────────────────────────────────
 export const updateTask = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
     const updates = req.body;
 
-    // ── Find existing task ────────────────────────────
     const task = await Task.findById(id);
     if (!task) {
       throw new ApiError(404, "Task not found");
     }
-
-    // ── Verify project access ─────────────────────────
     const project = await Project.findById(task.projectId);
     if (!project) {
       throw new ApiError(404, "Associated project not found");
@@ -339,7 +288,6 @@ export const updateTask = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Allowed update fields ─────────────────────────
     const allowedFields = [
       "title",
       "content",
@@ -356,7 +304,7 @@ export const updateTask = async (req, res, next) => {
       "rejectionReason",
     ];
 
-    // ── Build activity log entries for tracked changes ─
+    // Build activity log entries for tracked changes
     const logEntries = [];
 
     if (updates.status && updates.status !== task.status) {
@@ -409,7 +357,7 @@ export const updateTask = async (req, res, next) => {
       });
     }
 
-    // ── Apply updates ─────────────────────────────────
+    // Apply updates
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
         task[field] = updates[field];
@@ -424,7 +372,7 @@ export const updateTask = async (req, res, next) => {
     await task.save();
     await task.populate("assignees", "username email avatar");
 
-    // ── Notify on Assignment Change ───────────────────
+    // Notify on Assignment Change
     if (updates.assignees) {
       const originalAssignees = new Set(
         task.assignees.map((a) => a._id.toString()),
@@ -462,7 +410,7 @@ export const updateTask = async (req, res, next) => {
       }
     }
 
-    // ── Emit socket event (after DB success) ──────────
+    // Emit socket event (after DB success)
     emitToProject(task.projectId.toString(), "task.updated", {
       task,
     });
@@ -475,20 +423,11 @@ export const updateTask = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
-// PATCH /api/tasks/reorder
-// Reorder tasks INSIDE a single column
-//
-// Per production-blueprint.md §6 – Reorder Inside Column
-// Client sends: { projectId, columnId, taskIds }
-// Server:       Update column.taskIds
-//               No task document updates required
-// ──────────────────────────────────────────────────────
 export const reorderInsideColumn = async (req, res, next) => {
   try {
     const { projectId, columnId, taskIds } = req.body;
 
-    // ── Validation ────────────────────────────────────
+    // Validation
     if (!projectId || !columnId || !Array.isArray(taskIds)) {
       throw new ApiError(
         400,
@@ -498,7 +437,7 @@ export const reorderInsideColumn = async (req, res, next) => {
 
     const userId = req.user.id;
 
-    // ── Find project and verify access ────────────────
+    // Find project and verify access
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
@@ -510,17 +449,17 @@ export const reorderInsideColumn = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Find target column ────────────────────────────
+    // Find target column
     const column = project.columns.find((col) => col.id === columnId);
     if (!column) {
       throw new ApiError(404, `Column "${columnId}" not found`);
     }
 
-    // ── Update column taskIds (new order from client) ──
+    // Update column taskIds (new order from client)
     column.taskIds = taskIds;
     await project.save();
 
-    // ── Emit socket event (after DB success) ──────────
+    // Emit socket event (after DB success)
     emitToProject(projectId, "task.reordered", {
       columnId,
       taskIds,
@@ -540,22 +479,6 @@ export const reorderInsideColumn = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
-// PATCH /api/tasks/move
-// Move task ACROSS columns (uses MongoDB transaction)
-//
-// Per production-blueprint.md §6 – Move Across Columns
-// Client sends: {
-//   projectId, taskId,
-//   sourceColumnId, destinationColumnId,
-//   newSourceTaskIds, newDestinationTaskIds
-// }
-// Server steps (inside transaction):
-//   1. Update source column taskIds
-//   2. Update destination column taskIds
-//   3. Update task.columnId
-//   4. (Emit socket event – future phase)
-// ──────────────────────────────────────────────────────
 export const moveAcrossColumns = async (req, res, next) => {
   try {
     const {
@@ -567,7 +490,7 @@ export const moveAcrossColumns = async (req, res, next) => {
       newDestinationTaskIds,
     } = req.body;
 
-    // ── Validation ────────────────────────────────────
+    // Validation
     if (
       !projectId ||
       !taskId ||
@@ -584,7 +507,7 @@ export const moveAcrossColumns = async (req, res, next) => {
 
     const userId = req.user.id;
 
-    // ── Find project and verify access ────────────────
+    // Find project and verify access
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
@@ -596,7 +519,7 @@ export const moveAcrossColumns = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Locate columns ───────────────────────────────
+    // Locate columns
     const sourceColumn = project.columns.find(
       (col) => col.id === sourceColumnId,
     );
@@ -685,7 +608,7 @@ export const moveAcrossColumns = async (req, res, next) => {
       },
     };
 
-    // ── Emit socket event (after DB success) ──────────
+    // Emit socket event (after DB success)
     emitToProject(projectId, "task.moved", responseData);
 
     res
@@ -696,10 +619,6 @@ export const moveAcrossColumns = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
-// DELETE /api/tasks/:id
-// Delete a task (removes from project also)
-// ──────────────────────────────────────────────────────
 export const deleteTask = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -710,7 +629,7 @@ export const deleteTask = async (req, res, next) => {
       throw new ApiError(404, "Task not found");
     }
 
-    // ── Verify project access ─────────────────────────
+    // Verify project access
     const project = await Project.findById(task.projectId);
     if (!project) throw new ApiError(404, "Project not found");
 
@@ -720,17 +639,17 @@ export const deleteTask = async (req, res, next) => {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    // ── Remove from Column ────────────────────────────
+    // Remove from Column
     const column = project.columns.find((col) => col.id === task.columnId);
     if (column) {
       column.taskIds = column.taskIds.filter((tid) => tid !== id);
       await project.save();
     }
 
-    // ── Delete Task ───────────────────────────────────
+    // Delete Task
     await Task.findByIdAndDelete(id);
 
-    // ── Emit socket event (after DB success) ──────────
+    // Emit socket event (after DB success)
     emitToProject(task.projectId.toString(), "task.deleted", {
       taskId: id,
       columnId: task.columnId,

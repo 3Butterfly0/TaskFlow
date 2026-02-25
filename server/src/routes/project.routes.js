@@ -16,7 +16,7 @@ const router = Router();
 // All project routes are protected
 router.use(protect);
 
-// ── Project routes ───────────────────────────────────
+// Project routes
 router.post("/", createProject);
 router.get("/", getProjects);
 

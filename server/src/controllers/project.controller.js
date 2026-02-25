@@ -4,30 +4,24 @@ import Task from "../models/Task.model.js";
 import User from "../models/User.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
-
-// ──────────────────────────────────────────────────────
 // POST /api/projects
-// ──────────────────────────────────────────────────────
 export const createProject = async (req, res, next) => {
   try {
     const { name, description, visibility } = req.body;
 
-    // ── Validation ────────────────────────────────────
     if (!name) {
       throw new ApiError(400, "Project name is required");
     }
 
-    // ── Create project ────────────────────────────────
     const project = await Project.create({
       name,
       description,
       visibility,
       owner: req.user.id,
       createdBy: req.user.id,
-      members: [req.user.id], // Owner is auto-added as a member
+      members: [req.user.id],
     });
 
-    // Populate owner and members for the response
     await project.populate([
       { path: "owner", select: "username email avatar" },
       { path: "members", select: "username email avatar" },
@@ -41,10 +35,7 @@ export const createProject = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // GET /api/projects
-// Returns projects where user is owner OR member
-// ──────────────────────────────────────────────────────
 export const getProjects = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -65,9 +56,7 @@ export const getProjects = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // GET /api/projects/:id
-// ──────────────────────────────────────────────────────
 export const getProjectById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -77,12 +66,9 @@ export const getProjectById = async (req, res, next) => {
       .populate("owner", "username email avatar")
       .populate("members", "username email avatar");
 
-    // ── Not found ─────────────────────────────────────
     if (!project) {
       throw new ApiError(404, "Project not found");
     }
-
-    // ── Access check: must be owner or member ─────────
     const isOwner = project.owner._id.toString() === userId;
     const isMember = project.members.some((m) => m._id.toString() === userId);
 
@@ -97,9 +83,8 @@ export const getProjectById = async (req, res, next) => {
     next(error);
   }
 };
-// ──────────────────────────────────────────────────────
+
 // GET /api/projects/:id/members
-// ──────────────────────────────────────────────────────
 export const getProjectMembers = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -108,10 +93,6 @@ export const getProjectMembers = async (req, res, next) => {
       "username email avatar",
     );
     if (!project) throw new ApiError(404, "Project not found");
-
-    // Check access?
-    // Assuming if you know the ID you can see members or stick to member check
-    // Logic: members can see other members
 
     res
       .status(200)
@@ -123,10 +104,7 @@ export const getProjectMembers = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // DELETE /api/projects/:id
-// Deletes project and all associated tasks
-// ──────────────────────────────────────────────────────
 export const deleteProject = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -138,15 +116,10 @@ export const deleteProject = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // ── Access check: must be owner ───────────────────
     if (project.owner.toString() !== userId) {
       throw new ApiError(403, "Only the project owner can delete this project");
     }
-
-    // ── Cascade delete tasks ──────────────────────────
     await Task.deleteMany({ projectId: id });
-
-    // ── Delete project ────────────────────────────────
     await Project.findByIdAndDelete(id);
 
     res
@@ -157,16 +130,12 @@ export const deleteProject = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/projects/:id/pin
-// Toggle pin status for a project
-// ──────────────────────────────────────────────────────
 export const togglePinProject = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Verify project exists
     const project = await Project.findById(id);
     if (!project) throw new ApiError(404, "Project not found");
 
@@ -193,16 +162,12 @@ export const togglePinProject = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/projects/:id/access
-// Update last accessed time for a project
-// ──────────────────────────────────────────────────────
 export const updateLastAccessed = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Verify project exists
     const project = await Project.findById(id);
     if (!project) throw new ApiError(404, "Project not found");
 
@@ -214,7 +179,7 @@ export const updateLastAccessed = async (req, res, next) => {
       $push: {
         lastAccessedProjects: {
           $each: [{ projectId: id, accessedAt: new Date() }],
-          $slice: -5, // Keep only last 5
+          $slice: -5,
         },
       },
     });
@@ -225,10 +190,7 @@ export const updateLastAccessed = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/projects/:id/columns
-// Add a new column to the project
-// ──────────────────────────────────────────────────────
 export const addColumn = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -241,11 +203,9 @@ export const addColumn = async (req, res, next) => {
     const project = await Project.findById(id);
     if (!project) throw new ApiError(404, "Project not found");
 
-    // Add new column
     project.columns.push({ title, taskIds: [] });
     await project.save();
 
-    // Return the new column (last one)
     const newColumn = project.columns[project.columns.length - 1];
 
     res

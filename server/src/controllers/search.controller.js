@@ -3,13 +3,6 @@ import Project from "../models/Project.model.js";
 import Task from "../models/Task.model.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
-/**
- * Global search across Projects, Tasks, and Users.
- *
- * Query params:
- * - q: Search query string
- * - type: Optional filter (project, task, user, all). Default 'all'.
- */
 export const globalSearch = async (req, res, next) => {
   try {
     const { q, type = "all" } = req.query;
@@ -34,11 +27,8 @@ export const globalSearch = async (req, res, next) => {
       users: [],
     };
 
-    // Parallel execution for performance
     const promises = [];
 
-    // 1. Search Projects
-    // User must be owner or member
     if (type === "all" || type === "project") {
       promises.push(
         Project.find({
@@ -54,15 +44,7 @@ export const globalSearch = async (req, res, next) => {
           }),
       );
     }
-
-    // 2. Search Tasks
-    // User must be a member of the project the task belongs to.
-    // This is complex with $text search + cross-collection lookup.
-    // For simplicity/performance in this MVP, we verify project access after finding tasks,
-    // OR we rely on the fact that task IDs/Titles are somewhat obscure if not authorized.
-    // BETTER APPROACH: Find all project IDs user has access to first, then filter tasks by those project IDs.
     if (type === "all" || type === "task") {
-      // First get all project IDs user is part of
       const userProjects = await Project.find({
         $or: [{ owner: userId }, { members: userId }],
       }).select("_id");
@@ -74,7 +56,7 @@ export const globalSearch = async (req, res, next) => {
           projectId: { $in: projectIds },
         })
           .select("title priority projectId columnId updatedAt")
-          .populate("projectId", "name") // Project name needed for context
+          .populate("projectId", "name")
           .limit(5)
           .lean()
           .then((data) => {
@@ -83,8 +65,6 @@ export const globalSearch = async (req, res, next) => {
       );
     }
 
-    // 3. Search Users
-    // Find users by username or email (regex partial match)
     if (type === "all" || type === "user") {
       promises.push(
         User.find({
@@ -92,7 +72,7 @@ export const globalSearch = async (req, res, next) => {
             { username: { $regex: searchQuery, $options: "i" } },
             { email: { $regex: searchQuery, $options: "i" } },
           ],
-          _id: { $ne: userId }, // Exclude self
+          _id: { $ne: userId },
         })
           .select("username email avatar")
           .limit(5)

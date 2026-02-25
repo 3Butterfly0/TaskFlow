@@ -74,7 +74,7 @@ export const initializeSocket = (httpServer) => {
   io.on("connection", (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
 
-    // ── Authenticate / identify user ──────────────────
+    // Authenticate / identify user
     // Client sends: socket.emit("setup", userId)
     socket.on("setup", (userId) => {
       socket.userId = userId;
@@ -90,7 +90,7 @@ export const initializeSocket = (httpServer) => {
       logger.info(`User ${userId} identified on socket ${socket.id}`);
     });
 
-    // ── Join a project room ───────────────────────────
+    // Join a project room
     // Per architecture.md §9:
     //   socket.on("join-project", projectId => socket.join(projectId))
     socket.on("join-project", (projectId) => {
@@ -105,7 +105,7 @@ export const initializeSocket = (httpServer) => {
       });
     });
 
-    // ── Leave a project room ──────────────────────────
+    // Leave a project room
     socket.on("leave-project", (projectId) => {
       socket.leave(projectId);
       logger.debug(`Socket ${socket.id} left room: ${projectId}`);
@@ -118,7 +118,7 @@ export const initializeSocket = (httpServer) => {
       });
     });
 
-    // ── Disconnect ────────────────────────────────────
+    // Disconnect
     socket.on("disconnect", () => {
       const userId = socket.userId;
 
