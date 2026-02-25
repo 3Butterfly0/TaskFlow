@@ -4,9 +4,6 @@ import { useGetTicketsQuery } from "../features/tickets/ticketApi";
 import RaiseTicketModal from "../features/tickets/RaiseTicketModal";
 import PromoteTicketModal from "../features/tickets/PromoteTicketModal";
 
-/* ═══════════════════════════════════════════════════════
-   Constants
-   ═══════════════════════════════════════════════════════ */
 const STATUS_OPTIONS = [
   { value: "", label: "All" },
   { value: "open", label: "Open" },
@@ -42,9 +39,6 @@ const statusLabels = {
   rejected: "Rejected",
 };
 
-/* ═══════════════════════════════════════════════════════
-   Stats bar
-   ═══════════════════════════════════════════════════════ */
 const StatsBar = ({ tickets }) => {
   const stats = useMemo(() => {
     const s = { total: tickets.length, open: 0, in_progress: 0, blocking: 0 };
@@ -61,7 +55,11 @@ const StatsBar = ({ tickets }) => {
       {[
         { label: "Total", value: stats.total, color: "text-white" },
         { label: "Open", value: stats.open, color: "text-blue-400" },
-        { label: "In Progress", value: stats.in_progress, color: "text-indigo-400" },
+        {
+          label: "In Progress",
+          value: stats.in_progress,
+          color: "text-indigo-400",
+        },
         { label: "Blocking", value: stats.blocking, color: "text-red-400" },
       ].map((stat) => (
         <div
@@ -69,18 +67,13 @@ const StatsBar = ({ tickets }) => {
           className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3"
         >
           <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-          <p className={`mt-1 text-xl font-bold ${stat.color}`}>
-            {stat.value}
-          </p>
+          <p className={`mt-1 text-xl font-bold ${stat.color}`}>{stat.value}</p>
         </div>
       ))}
     </div>
   );
 };
 
-/* ═══════════════════════════════════════════════════════
-   Ticket row
-   ═══════════════════════════════════════════════════════ */
 const TicketRow = ({ ticket, projectId, onPromote }) => {
   const isPromotable =
     !ticket.linkedTaskId &&
@@ -89,7 +82,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
 
   return (
     <div className="group flex flex-wrap items-center gap-3 border-b border-slate-800/50 px-4 py-3 transition-colors hover:bg-slate-900/50 sm:flex-nowrap">
-      {/* Severity badge */}
       <span
         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
           severityColors[ticket.severity]
@@ -98,7 +90,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
         {ticket.severity}
       </span>
 
-      {/* Subject + description */}
       <div className="min-w-0 flex-1">
         <h4 className="text-sm font-medium text-white truncate">
           {ticket.subject}
@@ -108,7 +99,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
         </p>
       </div>
 
-      {/* Status badge */}
       <span
         className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
           statusColors[ticket.status]
@@ -117,7 +107,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
         {statusLabels[ticket.status]}
       </span>
 
-      {/* Reporter */}
       <div className="flex shrink-0 items-center gap-1.5">
         <div className="flex size-5 items-center justify-center rounded-full bg-slate-700 text-[9px] font-medium text-white">
           {ticket.reporter?.username?.charAt(0).toUpperCase() || "?"}
@@ -127,7 +116,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
         </span>
       </div>
 
-      {/* Date */}
       <span className="shrink-0 text-[11px] text-slate-600">
         {new Date(ticket.createdAt).toLocaleDateString("en-US", {
           month: "short",
@@ -135,7 +123,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
         })}
       </span>
 
-      {/* Linked task */}
       {ticket.linkedTaskId && (
         <Link
           to={`/projects/${projectId}/board`}
@@ -145,7 +132,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
         </Link>
       )}
 
-      {/* Promote action */}
       {isPromotable && (
         <button
           onClick={() => onPromote(ticket)}
@@ -158,9 +144,6 @@ const TicketRow = ({ ticket, projectId, onPromote }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════
-   Loading skeleton
-   ═══════════════════════════════════════════════════════ */
 const TicketsSkeleton = () => (
   <div className="space-y-0 rounded-xl border border-slate-800 bg-slate-950">
     {Array.from({ length: 5 }).map((_, i) => (
@@ -179,13 +162,9 @@ const TicketsSkeleton = () => (
   </div>
 );
 
-/* ═══════════════════════════════════════════════════════
-   Tickets page
-   ═══════════════════════════════════════════════════════ */
 const Tickets = () => {
   const { projectId } = useParams();
 
-  // ── Filters ────────────────────────────────────────
   const [statusFilter, setStatusFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
 
@@ -202,26 +181,32 @@ const Tickets = () => {
 
   const tickets = ticketsData?.data || [];
 
-  // ── Modal state ────────────────────────────────────
   const [showRaiseModal, setShowRaiseModal] = useState(false);
   const [promoteTicket, setPromoteTicket] = useState(null);
 
   return (
     <div className="flex h-full flex-col w-full px-6">
-      {/* ── Page header ─────────────────────────── */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 pt-6">
         <button
           onClick={() => setShowRaiseModal(true)}
           className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-colors hover:bg-indigo-500"
         >
-          <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          <svg
+            className="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           + Ticket
         </button>
 
         <div className="flex flex-wrap items-center gap-4">
-          {/* Status Filter - Compact with Label on Right */}
           <div className="relative inline-flex items-center rounded-lg border border-slate-700 bg-slate-900/50 hover:border-slate-600 transition-colors">
             <select
               value={statusFilter}
@@ -236,11 +221,20 @@ const Tickets = () => {
             </select>
             <div className="pointer-events-none absolute right-2 flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500">
               <span>Status</span>
-              <svg className="size-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg
+                className="size-3 text-slate-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
           </div>
 
-          {/* Severity Filter - Compact with Label on Right */}
           <div className="relative inline-flex items-center rounded-lg border border-slate-700 bg-slate-900/50 hover:border-slate-600 transition-colors">
             <select
               value={severityFilter}
@@ -249,38 +243,53 @@ const Tickets = () => {
             >
               {SEVERITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                   {option.label}
+                  {option.label}
                 </option>
               ))}
             </select>
             <div className="pointer-events-none absolute right-2 flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500">
               <span>Severity</span>
-              <svg className="size-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg
+                className="size-3 text-slate-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Stats ───────────────────────────────── */}
       {!isLoading && tickets.length > 0 && <StatsBar tickets={tickets} />}
 
-
-
-      {/* ── Error ───────────────────────────────── */}
       {isError && (
         <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
           {error?.data?.message || "Failed to load tickets"}
         </div>
       )}
 
-      {/* ── Loading ─────────────────────────────── */}
       {isLoading && <TicketsSkeleton />}
 
-      {/* ── Empty state ─────────────────────────── */}
       {!isLoading && !isError && tickets.length === 0 && (
         <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 py-16">
-          <svg className="mb-4 size-12 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" />
+          <svg
+            className="mb-4 size-12 text-slate-700"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+            <path d="M13 5v2" />
+            <path d="M13 17v2" />
+            <path d="M13 11v2" />
           </svg>
           <h3 className="text-base font-semibold text-white">No tickets yet</h3>
           <p className="mt-1 text-sm text-slate-500">
@@ -299,34 +308,34 @@ const Tickets = () => {
         </div>
       )}
 
-      {/* ── Ticket list (Client-Side Filtered) ─────────────────────────── */}
       {!isLoading && !isError && tickets.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
           {tickets
-            .filter(t => 
-              (!statusFilter || t.status === statusFilter) &&
-              (!severityFilter || t.severity === severityFilter)
+            .filter(
+              (t) =>
+                (!statusFilter || t.status === statusFilter) &&
+                (!severityFilter || t.severity === severityFilter),
             )
             .map((ticket) => (
-            <TicketRow
-              key={ticket._id}
-              ticket={ticket}
-              projectId={projectId}
-              onPromote={setPromoteTicket}
-            />
-          ))}
-          {tickets.filter(t => 
+              <TicketRow
+                key={ticket._id}
+                ticket={ticket}
+                projectId={projectId}
+                onPromote={setPromoteTicket}
+              />
+            ))}
+          {tickets.filter(
+            (t) =>
               (!statusFilter || t.status === statusFilter) &&
-              (!severityFilter || t.severity === severityFilter)
-            ).length === 0 && (
-              <div className="p-8 text-center text-slate-500 text-sm">
-                No tickets match the selected filters.
-              </div>
-            )}
+              (!severityFilter || t.severity === severityFilter),
+          ).length === 0 && (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              No tickets match the selected filters.
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── Modals ──────────────────────────────── */}
       <RaiseTicketModal
         isOpen={showRaiseModal}
         onClose={() => setShowRaiseModal(false)}

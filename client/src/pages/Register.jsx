@@ -53,7 +53,9 @@ const Register = () => {
       navigate("/", { replace: true });
     } catch (err) {
       setError(
-        err?.data?.error?.message || err?.data?.message || "Registration failed"
+        err?.data?.error?.message ||
+          err?.data?.message ||
+          "Registration failed",
       );
     }
   };
@@ -61,7 +63,6 @@ const Register = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-md">
-        {/* ── Brand ──────────────────────────────── */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-indigo-600 text-xl font-bold text-white">
             T
@@ -72,17 +73,14 @@ const Register = () => {
           </p>
         </div>
 
-        {/* ── Form card ──────────────────────────── */}
         <div className="rounded-2xl border border-slate-800 bg-slate-950 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error */}
             {error && (
               <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
                 {error}
               </div>
             )}
 
-            {/* Username */}
             <div>
               <label
                 htmlFor="username"
@@ -102,7 +100,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label
                 htmlFor="email"
@@ -122,7 +119,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -142,7 +138,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label
                 htmlFor="confirmPassword"
@@ -162,7 +157,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading}
@@ -172,7 +166,6 @@ const Register = () => {
             </button>
           </form>
 
-          {/* Link to login */}
           <p className="mt-6 text-center text-sm text-slate-400">
             Already have an account?{" "}
             <Link

@@ -1,21 +1,11 @@
 import { cn } from "../../utils/cn";
 
-/**
- * Generic empty state component.
- *
- * Props:
- *   icon       – Lucide icon component
- *   title      – Main heading
- *   description– Smaller text
- *   action     – Optional button/link component
- *   className  – Container overrides
- */
 const EmptyState = ({ icon: Icon, title, description, action, className }) => {
   return (
     <div
       className={cn(
         "flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-xl border border-dashed border-slate-800 bg-slate-900/30 p-8 text-center",
-        className
+        className,
       )}
     >
       {Icon && (

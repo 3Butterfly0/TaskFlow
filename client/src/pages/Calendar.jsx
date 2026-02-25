@@ -3,7 +3,10 @@ import { useParams } from "react-router-dom";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { useGetTasksByProjectQuery, useUpdateTaskMutation } from "../features/tasks/taskApi";
+import {
+  useGetTasksByProjectQuery,
+  useUpdateTaskMutation,
+} from "../features/tasks/taskApi";
 import { useGetProjectByIdQuery } from "../features/projects/projectApi";
 import TaskDetails from "../features/tasks/TaskDetails";
 import { Loader } from "lucide-react";
@@ -11,7 +14,8 @@ import toast from "react-hot-toast";
 
 const Calendar = () => {
   const { projectId } = useParams();
-  const { data: tasksData, isLoading: isLoadingTasks } = useGetTasksByProjectQuery(projectId);
+  const { data: tasksData, isLoading: isLoadingTasks } =
+    useGetTasksByProjectQuery(projectId);
   const { data: projectData } = useGetProjectByIdQuery(projectId);
   const [updateTask] = useUpdateTaskMutation();
 
@@ -25,12 +29,14 @@ const Calendar = () => {
 
   // Map tasks to FullCalendar event objects
   const events = tasks
-    .filter(task => task.dueDate) // Only tasks with due dates
-    .map(task => {
+    .filter((task) => task.dueDate) // Only tasks with due dates
+    .map((task) => {
       // Map priority to background colors
       let backgroundColor = "#3b82f6"; // default blue (low)
-      if (task.priority === "critical") backgroundColor = "#ef4444"; // red
-      else if (task.priority === "high") backgroundColor = "#f97316"; // orange
+      if (task.priority === "critical")
+        backgroundColor = "#ef4444"; // red
+      else if (task.priority === "high")
+        backgroundColor = "#f97316"; // orange
       else if (task.priority === "medium") backgroundColor = "#f59e0b"; // amber
 
       return {
@@ -41,22 +47,25 @@ const Calendar = () => {
         backgroundColor,
         borderColor: backgroundColor,
         extendedProps: {
-          task
-        }
+          task,
+        },
       };
     });
 
   const handleEventDrop = async (info) => {
     const taskId = info.event.id;
     const newDate = info.event.start;
-    
-    // Optimistic dragging is handled by FullCalendar automatically until we revert.
+
     try {
-      await updateTask({ id: taskId, projectId, dueDate: newDate.toISOString() }).unwrap();
+      await updateTask({
+        id: taskId,
+        projectId,
+        dueDate: newDate.toISOString(),
+      }).unwrap();
       toast.success("Task due date updated.");
     } catch {
       toast.error("Failed to update task date.");
-      info.revert(); // revert visual change if API fails
+      info.revert();
     }
   };
 
@@ -76,11 +85,14 @@ const Calendar = () => {
     <div className="flex h-full flex-col bg-slate-950 p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white tracking-tight">
-          {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+          {currentDate.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          })}
         </h1>
         <div className="flex gap-2">
-          <select 
-            value={currentDate.getMonth()} 
+          <select
+            value={currentDate.getMonth()}
             onChange={(e) => {
               const d = new Date(currentDate);
               d.setMonth(parseInt(e.target.value, 10));
@@ -88,14 +100,14 @@ const Calendar = () => {
             }}
             className="rounded bg-slate-800 px-3 py-1 text-sm font-medium text-slate-200 outline-none border border-slate-700 hover:border-slate-600 transition-colors"
           >
-            {Array.from({length: 12}).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <option key={i} value={i}>
-                {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                {new Date(0, i).toLocaleString("default", { month: "long" })}
               </option>
             ))}
           </select>
-          <select 
-            value={currentDate.getFullYear()} 
+          <select
+            value={currentDate.getFullYear()}
             onChange={(e) => {
               const d = new Date(currentDate);
               d.setFullYear(parseInt(e.target.value, 10));
@@ -103,16 +115,22 @@ const Calendar = () => {
             }}
             className="rounded bg-slate-800 px-3 py-1 text-sm font-medium text-slate-200 outline-none border border-slate-700 hover:border-slate-600 transition-colors"
           >
-            {Array.from({length: 10}).map((_, i) => {
+            {Array.from({ length: 10 }).map((_, i) => {
               const year = new Date().getFullYear() - 5 + i;
-              return <option key={year} value={year}>{year}</option>;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
             })}
           </select>
         </div>
       </div>
 
       <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-visible calendar-wrapper custom-scrollbar">
-        <style dangerouslySetInnerHTML={{__html: `
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           .fc {
             --fc-page-bg-color: transparent;
             --fc-neutral-bg-color: #0f172a;
@@ -153,7 +171,9 @@ const Calendar = () => {
           .fc-button { text-transform: capitalize; border-radius: 6px !important; font-weight: 500 !important; font-size: 0.875rem !important; transition: all 0.2s; }
           .fc-button-primary:not(:disabled).fc-button-active, .fc-button-primary:not(:disabled):active { box-shadow: none !important; }
           .fc-button-primary:focus { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5) !important; }
-        `}} />
+        `,
+          }}
+        />
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -167,7 +187,7 @@ const Calendar = () => {
           headerToolbar={{
             left: "",
             center: "",
-            right: "today prev,next"
+            right: "today prev,next",
           }}
           height="100%"
           dayMaxEvents={3}

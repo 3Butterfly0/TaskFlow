@@ -8,14 +8,6 @@ const SEVERITIES = [
   { value: "blocking", label: "Blocking", color: "bg-red-500" },
 ];
 
-/**
- * Modal to raise a new ticket (PRD workflow step 1-2).
- *
- * Props:
- *   isOpen    – boolean
- *   onClose   – callback
- *   projectId – current project
- */
 const RaiseTicketModal = ({ isOpen, onClose, projectId }) => {
   const [createTicket, { isLoading }] = useCreateTicketMutation();
   const [form, setForm] = useState({
@@ -56,7 +48,7 @@ const RaiseTicketModal = ({ isOpen, onClose, projectId }) => {
       setError(
         err?.data?.error?.message ||
           err?.data?.message ||
-          "Failed to create ticket"
+          "Failed to create ticket",
       );
     }
   };
@@ -70,7 +62,6 @@ const RaiseTicketModal = ({ isOpen, onClose, projectId }) => {
           </div>
         )}
 
-        {/* Subject */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
             Subject
@@ -84,7 +75,6 @@ const RaiseTicketModal = ({ isOpen, onClose, projectId }) => {
           />
         </div>
 
-        {/* Description */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
             Description
@@ -99,7 +89,6 @@ const RaiseTicketModal = ({ isOpen, onClose, projectId }) => {
           />
         </div>
 
-        {/* Severity */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
             Severity
@@ -118,14 +107,15 @@ const RaiseTicketModal = ({ isOpen, onClose, projectId }) => {
                     : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
                 }`}
               >
-                <span className={`inline-block size-2 rounded-full ${s.color}`} />
+                <span
+                  className={`inline-block size-2 rounded-full ${s.color}`}
+                />
                 {s.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"

@@ -2,13 +2,6 @@ import { useState } from "react";
 import { useCreateProjectMutation } from "./projectApi";
 import Modal from "../../components/ui/Modal";
 
-/**
- * Feature-specific modal for creating a new project.
- *
- * Props:
- *   isOpen  – boolean controlling visibility
- *   onClose – callback to close the modal
- */
 const CreateProjectModal = ({ isOpen, onClose }) => {
   const [createProject, { isLoading }] = useCreateProjectMutation();
 
@@ -43,7 +36,9 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
       onClose();
     } catch (err) {
       setError(
-        err?.data?.error?.message || err?.data?.message || "Failed to create project"
+        err?.data?.error?.message ||
+          err?.data?.message ||
+          "Failed to create project",
       );
     }
   };
@@ -57,14 +52,12 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create Project">
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Error */}
         {error && (
           <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
             {error}
           </div>
         )}
 
-        {/* Name */}
         <div>
           <label
             htmlFor="project-name"
@@ -84,14 +77,12 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
           />
         </div>
 
-        {/* Description */}
         <div>
           <label
             htmlFor="project-description"
             className="mb-1.5 block text-sm font-medium text-slate-300"
           >
-            Description{" "}
-            <span className="text-slate-500">(optional)</span>
+            Description <span className="text-slate-500">(optional)</span>
           </label>
           <textarea
             id="project-description"
@@ -104,7 +95,6 @@ const CreateProjectModal = ({ isOpen, onClose }) => {
           />
         </div>
 
-        {/* Actions */}
         <div className="flex justify-end gap-3 pt-1">
           <button
             type="button"

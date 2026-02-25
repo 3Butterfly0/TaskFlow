@@ -2,20 +2,20 @@ import { NavLink, useParams } from "react-router-dom";
 import { Layout, List, Ticket, BarChart2, Users, Archive, Calendar as CalendarIcon } from "lucide-react";
 
 const navItems = [
-  { label: "Board", path: "board", icon: Layout },
+  { label: "Kanban", path: "board", icon: Layout },
+  { label: "Tickets", path: "tickets", icon: Ticket },
   { label: "Calendar", path: "calendar", icon: CalendarIcon },
   { label: "Backlog", path: "backlog", icon: List },
-  { label: "History", path: "history", icon: Archive },
-  { label: "Tickets", path: "tickets", icon: Ticket },
   { label: "Analytics", path: "analytics", icon: BarChart2 },
   { label: "Team", path: "team", icon: Users },
+  { label: "History", path: "history", icon: Archive },
 ];
 
 const ProjectNavbar = () => {
   const { projectId } = useParams();
 
   return (
-    <nav className="flex items-center gap-10">
+    <nav className="flex items-center gap-12">
       {navItems.map((item) => (
         <NavLink
           key={item.path}

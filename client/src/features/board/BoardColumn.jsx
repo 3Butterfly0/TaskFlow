@@ -18,9 +18,7 @@ import TaskCard from "./TaskCard";
  */
 const BoardColumn = ({ column, taskMap, onOpen, isDoneColumn }) => {
   // Resolve taskIds to actual task documents, preserving order
-  const tasks = (column.taskIds || [])
-    .map((id) => taskMap[id])
-    .filter(Boolean);
+  const tasks = (column.taskIds || []).map((id) => taskMap[id]).filter(Boolean);
 
   // Make the column a droppable zone (for dropping into empty columns)
   const { setNodeRef, isOver } = useDroppable({
@@ -37,7 +35,6 @@ const BoardColumn = ({ column, taskMap, onOpen, isDoneColumn }) => {
         isOver ? "bg-slate-800/80 ring-2 ring-indigo-500/50" : ""
       }`}
     >
-      {/* ── Column header ──────────────────────── */}
       <div className="flex items-center justify-between sticky top-0 px-3 py-3 z-10 rounded-t cursor-pointer hover:bg-slate-800/50 transition-colors">
         <div className="flex items-center gap-2">
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">
@@ -49,8 +46,10 @@ const BoardColumn = ({ column, taskMap, onOpen, isDoneColumn }) => {
         </div>
       </div>
 
-      {/* ── Task list (sortable) ───────────────── */}
-      <div ref={setNodeRef} className="flex-1 space-y-2 overflow-y-auto p-2 min-h-[60px]">
+      <div
+        ref={setNodeRef}
+        className="flex-1 space-y-2 overflow-y-auto p-2 min-h-[60px]"
+      >
         <SortableContext
           items={column.taskIds || []}
           strategy={verticalListSortingStrategy}
@@ -62,7 +61,12 @@ const BoardColumn = ({ column, taskMap, onOpen, isDoneColumn }) => {
           )}
 
           {tasks.map((task) => (
-            <TaskCard key={task._id} task={task} onOpen={onOpen} isDoneColumn={isDoneColumn} />
+            <TaskCard
+              key={task._id}
+              task={task}
+              onOpen={onOpen}
+              isDoneColumn={isDoneColumn}
+            />
           ))}
         </SortableContext>
       </div>

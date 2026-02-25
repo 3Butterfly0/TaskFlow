@@ -11,7 +11,10 @@ import { arrayMove } from "@dnd-kit/sortable";
 
 import BoardColumn from "./BoardColumn";
 import TaskCard from "./TaskCard";
-import { useReorderColumnMutation, useMoveTaskMutation } from "../tasks/taskApi";
+import {
+  useReorderColumnMutation,
+  useMoveTaskMutation,
+} from "../tasks/taskApi";
 import { useAddColumnMutation } from "../projects/projectApi";
 import { Plus, X, Check } from "lucide-react";
 
@@ -24,7 +27,12 @@ import { Plus, X, Check } from "lucide-react";
  *   projectId  – current project ID
  *   onOpenTask – callback when a card is clicked
  */
-const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }) => {
+const BoardContainer = ({
+  columns: serverColumns,
+  tasks,
+  projectId,
+  onOpenTask,
+}) => {
   const [reorderColumn] = useReorderColumnMutation();
   const [moveTask] = useMoveTaskMutation();
   const [addColumn] = useAddColumnMutation();
@@ -45,7 +53,6 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
     }
   };
 
-  // ── Optimistic column state ────────────────────────
   const [optimisticColumns, setOptimisticColumns] = useState(null);
   const columns = optimisticColumns || serverColumns;
 
@@ -65,7 +72,6 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
     return map;
   }, [tasks]);
 
-  // ── Active drag state ──────────────────────────────
   const [activeTask, setActiveTask] = useState(null);
 
   // ── Drag origin ref ────────────────────────────────
@@ -74,14 +80,12 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
   // originally lived — never changes during the drag.
   const dragOriginRef = useRef(null);
 
-  // ── Sensors ────────────────────────────────────────
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
-    })
+    }),
   );
 
-  // ── onDragStart ────────────────────────────────────
   const handleDragStart = useCallback(
     (event) => {
       const { active } = event;
@@ -93,7 +97,7 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
       // Record which column this task is dragged FROM
       // using SERVER state (the truth before any optimism)
       const sourceCol = serverColumns.find((col) =>
-        (col.taskIds || []).includes(active.id)
+        (col.taskIds || []).includes(active.id),
       );
       dragOriginRef.current = {
         taskId: active.id,
@@ -101,12 +105,9 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
         sourceTaskIds: sourceCol ? [...sourceCol.taskIds] : [],
       };
     },
-    [taskMap, serverColumns]
+    [taskMap, serverColumns],
   );
 
-  // ── onDragOver ─────────────────────────────────────
-  // Fires continuously. We use it for visual feedback only
-  // (optimistically moving the card across columns).
   const handleDragOver = useCallback(
     (event) => {
       const { active, over } = event;
@@ -121,7 +122,7 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
 
         // Find which column currently has the task in optimistic state
         const activeColumn = currentCols.find((c) =>
-          (c.taskIds || []).includes(activeId)
+          (c.taskIds || []).includes(activeId),
         );
         if (!activeColumn) return prev;
 
@@ -132,7 +133,7 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
           overColumn = currentCols.find((c) => c.id === colId);
         } else {
           overColumn = currentCols.find((c) =>
-            (c.taskIds || []).includes(overId)
+            (c.taskIds || []).includes(overId),
           );
         }
 
@@ -168,10 +169,9 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
         return cols;
       });
     },
-    [serverColumns]
+    [serverColumns],
   );
 
-  // ── onDragEnd ──────────────────────────────────────
   const handleDragEnd = useCallback(
     async (event) => {
       const { active, over } = event;
@@ -193,7 +193,7 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
 
       // Find where the task currently sits in optimistic state
       const currentColumn = currentCols.find((c) =>
-        (c.taskIds || []).includes(activeId)
+        (c.taskIds || []).includes(activeId),
       );
 
       if (!currentColumn) {
@@ -216,10 +216,8 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
 
         setOptimisticColumns(
           currentCols.map((col) =>
-            col.id === currentColumn.id
-              ? { ...col, taskIds: newTaskIds }
-              : col
-          )
+            col.id === currentColumn.id ? { ...col, taskIds: newTaskIds } : col,
+          ),
         );
 
         try {
@@ -238,12 +236,12 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
 
         // Build clean source taskIds (task removed)
         const newSourceTaskIds = origin.sourceTaskIds.filter(
-          (id) => id !== activeId
+          (id) => id !== activeId,
         );
 
         // Build clean destination taskIds (task included, no duplicates)
         const newDestTaskIds = (currentColumn.taskIds || []).filter(
-          (id) => id !== activeId
+          (id) => id !== activeId,
         );
         // Re-insert at the correct position
         const insertIdx = (currentColumn.taskIds || []).indexOf(activeId);
@@ -267,13 +265,7 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
         }
       }
     },
-    [
-      optimisticColumns,
-      serverColumns,
-      projectId,
-      reorderColumn,
-      moveTask,
-    ]
+    [optimisticColumns, serverColumns, projectId, reorderColumn, moveTask],
   );
 
   return (
@@ -286,16 +278,15 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
     >
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
-          <BoardColumn 
-            key={column.id} 
-            column={column} 
-            taskMap={taskMap} 
-            onOpen={onOpenTask} 
+          <BoardColumn
+            key={column.id}
+            column={column}
+            taskMap={taskMap}
+            onOpen={onOpenTask}
             isDoneColumn={column.title === "Done"}
           />
         ))}
 
-        {/* ── Add Column Button ────────────────── */}
         <div className="w-72 shrink-0 rounded-xl border border-dashed border-slate-800 bg-slate-900/20 p-3">
           {isAddingColumn ? (
             <form onSubmit={handleAddColumn} className="space-y-2">
@@ -334,11 +325,8 @@ const BoardContainer = ({ columns: serverColumns, tasks, projectId, onOpenTask }
         </div>
       </div>
 
-      {/* ── Drag overlay ──────────────────────── */}
       <DragOverlay>
-        {activeTask ? (
-          <TaskCard task={activeTask} isDragOverlay />
-        ) : null}
+        {activeTask ? <TaskCard task={activeTask} isDragOverlay /> : null}
       </DragOverlay>
     </DndContext>
   );

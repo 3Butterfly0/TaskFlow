@@ -36,7 +36,7 @@ const Login = () => {
       navigate(from, { replace: true });
     } catch (err) {
       setError(
-        err?.data?.error?.message || err?.data?.message || "Login failed"
+        err?.data?.error?.message || err?.data?.message || "Login failed",
       );
     }
   };
@@ -44,7 +44,6 @@ const Login = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-md">
-        {/* ── Brand ──────────────────────────────── */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-indigo-600 text-xl font-bold text-white">
             T
@@ -55,17 +54,14 @@ const Login = () => {
           </p>
         </div>
 
-        {/* ── Form card ──────────────────────────── */}
         <div className="rounded-2xl border border-slate-800 bg-slate-950 p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error */}
             {error && (
               <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
                 {error}
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label
                 htmlFor="email"
@@ -85,7 +81,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label
                 htmlFor="password"
@@ -105,7 +100,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading}
@@ -115,7 +109,6 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Link to register */}
           <p className="mt-6 text-center text-sm text-slate-400">
             Don&apos;t have an account?{" "}
             <Link

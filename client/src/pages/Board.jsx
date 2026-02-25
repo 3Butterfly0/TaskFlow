@@ -10,7 +10,6 @@ import { AlertTriangle, Kanban, Search, Filter, User } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import EmptyState from "../components/ui/EmptyState";
 
-/* ── Avatar group helper ──────────────────────────── */
 const AvatarGroup = ({ members }) => {
   if (!members || members.length === 0) return null;
   const displayMembers = members.slice(0, 4);
@@ -19,13 +18,17 @@ const AvatarGroup = ({ members }) => {
   return (
     <div className="flex -space-x-2">
       {displayMembers.map((m, i) => (
-        <div 
+        <div
           key={m._id || i}
           className="size-8 rounded-full border-2 border-slate-950 bg-indigo-500/20 flex items-center justify-center text-xs font-medium text-indigo-400 overflow-hidden ring-1 ring-slate-800 cursor-pointer hover:-translate-y-1 transition-transform"
           title={m.username}
         >
           {m.avatar ? (
-            <img src={m.avatar} alt={m.username} className="size-full object-cover" />
+            <img
+              src={m.avatar}
+              alt={m.username}
+              className="size-full object-cover"
+            />
           ) : (
             m.username?.charAt(0).toUpperCase()
           )}
@@ -40,7 +43,6 @@ const AvatarGroup = ({ members }) => {
   );
 };
 
-/* ── Loading skeleton ──────────────────────────────── */
 const BoardSkeleton = () => (
   <div className="flex gap-4 overflow-hidden">
     {Array.from({ length: 3 }).map((_, i) => (
@@ -81,26 +83,21 @@ const Board = () => {
     error: projectError,
   } = useGetProjectByIdQuery(projectId);
 
-  const {
-    data: tasksData,
-    isLoading: isTasksLoading,
-  } = useGetTasksByProjectQuery(projectId);
+  const { data: tasksData, isLoading: isTasksLoading } =
+    useGetTasksByProjectQuery(projectId);
 
   const project = projectData?.data;
   const tasks = tasksData?.data || [];
   const isLoading = isProjectLoading || isTasksLoading;
 
-  // ── Task drawer / details state ────────────────────
   // Check URL query param for task
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
-  // Sync with URL (optional enhancement for Phase 2, but good to have)
   const searchParams = new URLSearchParams(window.location.search);
   const taskParam = searchParams.get("task");
 
   const handleOpenTask = useCallback((taskId) => {
     setSelectedTaskId(taskId);
-    // Add to URL
     const url = new URL(window.location);
     url.searchParams.set("task", taskId);
     window.history.pushState({}, "", url);
@@ -108,21 +105,17 @@ const Board = () => {
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedTaskId(null);
-    // Remove from URL
     const url = new URL(window.location);
     url.searchParams.delete("task");
     window.history.pushState({}, "", url);
   }, []);
 
-  // Sync initial load from URL
   useState(() => {
-     if (taskParam) setSelectedTaskId(taskParam);
+    if (taskParam) setSelectedTaskId(taskParam);
   });
 
   return (
     <div className="flex h-full flex-col p-8 pt-6 overflow-x-auto">
-
-      {/* ── Error state ─────────────────────────── */}
       {isProjectError && (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
@@ -137,19 +130,16 @@ const Board = () => {
         </div>
       )}
 
-      {/* ── Loading skeleton ────────────────────── */}
       {isLoading && <BoardSkeleton />}
-
-      {/* ── Board ───────────────────────────────── */}
 
       {!isLoading && !isProjectError && project ? (
         project.columns?.length === 0 ? (
           <div className="flex flex-1 items-center justify-center p-8">
-             <EmptyState
-               icon={Kanban}
-               title="Ready to organize?"
-               description="This board is empty. Add columns to get started."
-             />
+            <EmptyState
+              icon={Kanban}
+              title="Ready to organize?"
+              description="This board is empty. Add columns to get started."
+            />
           </div>
         ) : (
           <div className="flex-1">
@@ -163,8 +153,6 @@ const Board = () => {
         )
       ) : null}
 
-
-      {/* ── Task Details Modal ──────────────────── */}
       <TaskDetails
         taskId={selectedTaskId}
         isOpen={!!selectedTaskId}

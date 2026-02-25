@@ -7,7 +7,6 @@ export const searchApi = baseApi.injectEndpoints({
         url: "/search",
         params: { q, type },
       }),
-      // Don't cache search results too aggressively
       keepUnusedDataFor: 60,
     }),
   }),

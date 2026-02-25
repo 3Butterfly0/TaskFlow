@@ -3,7 +3,6 @@ import { NavLink, useParams } from "react-router-dom";
 import { useGetMeQuery } from "../../features/auth/authApi";
 import { Pin, Clock, ChevronDown, ChevronRight, Menu, SquareTerminal } from "lucide-react";
 
-/* ── Simple SVG icon map ──────────────────────────── */
 const icons = {
   barChart: (
     <svg xmlns="http://www.w3.org/2000/svg" className="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,7 +107,7 @@ const Sidebar = () => {
           collapsed ? "w-0 md:w-[72px] -translate-x-full md:translate-x-0" : "w-64 translate-x-0 fixed md:relative"
         }`}
       >
-      {/* ── Brand & Toggle ──────────────────────────────────── */}
+
       <div className={`flex h-16 items-center border-b border-slate-800 ${collapsed ? "justify-center" : "justify-between px-5"}`}>
         <div className={`flex items-center gap-2.5 overflow-hidden ${collapsed ? "w-0 h-0 opacity-0" : "opacity-100"}`}>
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
@@ -126,10 +125,8 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* ── Navigation ─────────────────────────────── */}
-      <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar">
-        {/* Main */}
-        <div className="flex flex-col gap-1">
+      <nav className="flex-1 space-y-8 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar">
+        <div className="flex flex-col gap-4">
           {!collapsed && (
             <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Main
@@ -140,7 +137,6 @@ const Sidebar = () => {
           ))}
         </div>
 
-        {/* Recent */}
         {recentProjects.length > 0 && (
           <div className="flex flex-col gap-1">
             {collapsed ? (
@@ -172,7 +168,6 @@ const Sidebar = () => {
           </div>
         )}
 
-        {/* Pinned */}
         {pinnedProjects.length > 0 && (
           <div className="flex flex-col gap-1">
              {collapsed ? (
@@ -205,7 +200,6 @@ const Sidebar = () => {
         )}
       </nav>
 
-      {/* ── Footer ─────────────────────────────────── */}
       <div className={`flex border-t border-slate-800 p-3 ${collapsed ? "justify-center" : ""}`}>
         {collapsed ? (
            <span className="text-[10px] text-slate-600 font-medium">v1.0</span>

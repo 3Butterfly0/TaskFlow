@@ -32,7 +32,13 @@ const TABS = [
   { id: "history", label: "History", icon: Activity },
 ];
 
-const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColumns = [] }) => {
+const TaskDetails = ({
+  taskId,
+  isOpen,
+  onClose,
+  projectMembers = [],
+  projectColumns = [],
+}) => {
   const overlayRef = useRef(null);
   const { data, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, {
     skip: !taskId || !isOpen,
@@ -69,7 +75,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
     }
   }, [task]);
 
-  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") onClose();
@@ -113,14 +118,12 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-8"
     >
       <div className="flex h-full w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
-        {/* Is Loading */}
         {isTaskLoading ? (
           <div className="flex h-full items-center justify-center">
             <span className="text-slate-400">Loading task data...</span>
           </div>
         ) : task ? (
           <>
-            {/* ── Header ─────────────────────────────── */}
             <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/50 px-6 py-3">
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <span className="font-medium text-slate-300">
@@ -149,11 +152,8 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
               </div>
             </div>
 
-            {/* ── Content Body ───────────────────────── */}
             <div className="flex flex-1 overflow-hidden">
-              {/* ── Left Column: Main Content ────────── */}
               <div className="shrink-0 flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-                {/* Title */}
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -162,7 +162,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   placeholder="Task Title"
                 />
 
-                {/* Description */}
                 <div className="mb-8">
                   <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
                     Description
@@ -177,7 +176,13 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                       modules={{
                         toolbar: [
                           [{ header: [1, 2, false] }],
-                          ["bold", "italic", "underline", "strike", "blockquote"],
+                          [
+                            "bold",
+                            "italic",
+                            "underline",
+                            "strike",
+                            "blockquote",
+                          ],
                           [
                             { list: "ordered" },
                             { list: "bullet" },
@@ -192,7 +197,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   </div>
                 </div>
 
-                {/* Attachments */}
                 <div className="mb-8">
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                     <Paperclip className="size-4" /> Attachments
@@ -210,7 +214,9 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                         </span>
                         <button
                           onClick={() => {
-                            const newAtts = attachments.filter((_, i) => i !== idx);
+                            const newAtts = attachments.filter(
+                              (_, i) => i !== idx,
+                            );
                             setAttachments(newAtts);
                             handleSave({ attachments: newAtts });
                           }}
@@ -235,7 +241,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   />
                 </div>
 
-                {/* Subtasks */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-2">
@@ -247,7 +252,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                     </span>
                   </div>
 
-                  {/* Progress Bar */}
                   {subtasks.length > 0 && (
                     <div className="h-1.5 w-full bg-slate-800 rounded-full mb-4 overflow-hidden">
                       <div
@@ -274,36 +278,57 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                           checked={sub.isCompleted}
                           onChange={async () => {
                             const updated = subtasks.map((s, i) =>
-                              i === idx ? { ...s, isCompleted: !s.isCompleted } : s
+                              i === idx
+                                ? { ...s, isCompleted: !s.isCompleted }
+                                : s,
                             );
                             setSubtasks(updated);
                             handleSave({ subtasks: updated });
 
                             // Check auto-complete
-                            const allComplete = updated.length > 0 && updated.every(s => s.isCompleted);
+                            const allComplete =
+                              updated.length > 0 &&
+                              updated.every((s) => s.isCompleted);
                             if (allComplete) {
-                              const doneCol = projectColumns.find(c => c.title.toLowerCase() === "done");
+                              const doneCol = projectColumns.find(
+                                (c) => c.title.toLowerCase() === "done",
+                              );
                               // Ensure it's not already in the Done column
                               if (doneCol && task.columnId !== doneCol.id) {
-                                if (window.confirm("All subtasks are complete. Move task to Done?")) {
+                                if (
+                                  window.confirm(
+                                    "All subtasks are complete. Move task to Done?",
+                                  )
+                                ) {
                                   try {
-                                     // source column is task.columnId
-                                     const sourceCol = projectColumns.find(c => c.id === task.columnId);
-                                     if (sourceCol) {
-                                        const newSourceTaskIds = sourceCol.taskIds.filter(id => id !== task._id);
-                                        const newDestTaskIds = [...doneCol.taskIds, task._id];
-                                        
-                                        await moveTask({
-                                          projectId: task.projectId,
-                                          taskId: task._id,
-                                          sourceColumnId: sourceCol.id,
-                                          destinationColumnId: doneCol.id,
-                                          newSourceTaskIds,
-                                          newDestinationTaskIds: newDestTaskIds,
-                                        }).unwrap();
-                                     }
+                                    // source column is task.columnId
+                                    const sourceCol = projectColumns.find(
+                                      (c) => c.id === task.columnId,
+                                    );
+                                    if (sourceCol) {
+                                      const newSourceTaskIds =
+                                        sourceCol.taskIds.filter(
+                                          (id) => id !== task._id,
+                                        );
+                                      const newDestTaskIds = [
+                                        ...doneCol.taskIds,
+                                        task._id,
+                                      ];
+
+                                      await moveTask({
+                                        projectId: task.projectId,
+                                        taskId: task._id,
+                                        sourceColumnId: sourceCol.id,
+                                        destinationColumnId: doneCol.id,
+                                        newSourceTaskIds,
+                                        newDestinationTaskIds: newDestTaskIds,
+                                      }).unwrap();
+                                    }
                                   } catch (err) {
-                                     console.error("Failed to auto-move task to Done", err);
+                                    console.error(
+                                      "Failed to auto-move task to Done",
+                                      err,
+                                    );
                                   }
                                 }
                               }
@@ -322,7 +347,9 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                         </span>
                         <button
                           onClick={() => {
-                            const updated = subtasks.filter((_, i) => i !== idx);
+                            const updated = subtasks.filter(
+                              (_, i) => i !== idx,
+                            );
                             setSubtasks(updated);
                             handleSave({ subtasks: updated });
                           }}
@@ -340,7 +367,10 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                         if (e.key === "Enter" && e.currentTarget.value.trim()) {
                           const updated = [
                             ...subtasks,
-                            { title: e.currentTarget.value.trim(), isCompleted: false },
+                            {
+                              title: e.currentTarget.value.trim(),
+                              isCompleted: false,
+                            },
                           ];
                           setSubtasks(updated);
                           handleSave({ subtasks: updated });
@@ -351,7 +381,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   </div>
                 </div>
 
-                {/* Tabs: Comments & History */}
                 <div>
                   <div className="flex items-center gap-6 border-b border-slate-800 mb-4">
                     {TABS.map((tab) => (
@@ -428,7 +457,7 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                             <div className="absolute -left-[21px] top-1 size-2.5 rounded-full border-2 border-slate-950 bg-slate-700" />
                             <p className="text-sm text-slate-400">
                               <span className="font-semibold text-slate-300">
-                                User {/* Ideally fetch user name or populate actorId */}
+                                User
                               </span>{" "}
                               {log.type.replace(/_/g, " ")}{" "}
                               <span className="text-xs text-slate-500 ml-2">
@@ -447,9 +476,7 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                 </div>
               </div>
 
-              {/* ── Right Column: Meta Info ──────────── */}
               <div className="w-80 border-l border-slate-800 bg-slate-900/20 p-6 overflow-y-auto hidden md:block">
-                {/* Status Dropdown (Mapping to Column) */}
                 <div className="mb-6">
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Status
@@ -457,32 +484,39 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   <select
                     value={task.columnId || ""}
                     onChange={async (e) => {
-                       const destColId = e.target.value;
-                       if (destColId === task.columnId) return;
-                       const sourceCol = projectColumns.find(c => c.id === task.columnId);
-                       const destCol = projectColumns.find(c => c.id === destColId);
-                       if (sourceCol && destCol) {
-                          const newSourceTaskIds = sourceCol.taskIds.filter(id => id !== task._id);
-                          const newDestTaskIds = [...destCol.taskIds, task._id];
-                          await moveTask({
-                            projectId: task.projectId,
-                            taskId: task._id,
-                            sourceColumnId: sourceCol.id,
-                            destinationColumnId: destCol.id,
-                            newSourceTaskIds,
-                            newDestinationTaskIds: newDestTaskIds,
-                          });
-                       }
+                      const destColId = e.target.value;
+                      if (destColId === task.columnId) return;
+                      const sourceCol = projectColumns.find(
+                        (c) => c.id === task.columnId,
+                      );
+                      const destCol = projectColumns.find(
+                        (c) => c.id === destColId,
+                      );
+                      if (sourceCol && destCol) {
+                        const newSourceTaskIds = sourceCol.taskIds.filter(
+                          (id) => id !== task._id,
+                        );
+                        const newDestTaskIds = [...destCol.taskIds, task._id];
+                        await moveTask({
+                          projectId: task.projectId,
+                          taskId: task._id,
+                          sourceColumnId: sourceCol.id,
+                          destinationColumnId: destCol.id,
+                          newSourceTaskIds,
+                          newDestinationTaskIds: newDestTaskIds,
+                        });
+                      }
                     }}
                     className="w-full rounded bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500"
                   >
-                     {projectColumns.map((col) => (
-                        <option key={col.id} value={col.id}>{col.title}</option>
-                     ))}
+                    {projectColumns.map((col) => (
+                      <option key={col.id} value={col.id}>
+                        {col.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Assignees */}
                 <div className="mb-6">
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Assignees
@@ -501,7 +535,9 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                           {member?.username || "Unknown"}
                           <button
                             onClick={() => {
-                              const updated = assignees.filter((uid) => uid !== id);
+                              const updated = assignees.filter(
+                                (uid) => uid !== id,
+                              );
                               setAssignees(updated);
                               handleSave({ assignees: updated });
                             }}
@@ -518,7 +554,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   </button>
                 </div>
 
-                {/* Priority */}
                 <div className="mb-6">
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Priority
@@ -539,7 +574,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   </select>
                 </div>
 
-                {/* Dates */}
                 <div className="mb-6">
                   <label className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     <Calendar className="size-3.5" /> Dates
@@ -555,7 +589,6 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
                   />
                 </div>
 
-                {/* Metadata */}
                 <div className="mt-8 pt-6 border-t border-slate-800 text-xs text-slate-500 space-y-2">
                   <div className="flex justify-between">
                     <span>Created</span>
@@ -576,7 +609,7 @@ const TaskDetails = ({ taskId, isOpen, onClose, projectMembers = [], projectColu
         )}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

@@ -2,14 +2,6 @@ import { useState } from "react";
 import Modal from "../../components/ui/Modal";
 import { useAddMemberMutation } from "./teamApi";
 
-/**
- * Modal to invite a user to the project by email.
- *
- * Props:
- *   isOpen    – boolean
- *   onClose   – callback
- *   projectId – current project
- */
 const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
   const [addMember, { isLoading }] = useAddMemberMutation();
   const [email, setEmail] = useState("");
@@ -37,10 +29,11 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
         email: email.trim(),
       }).unwrap();
 
-      setSuccess(`${result.data?.username || email.trim()} has been added to the project`);
+      setSuccess(
+        `${result.data?.username || email.trim()} has been added to the project`,
+      );
       setEmail("");
 
-      // Auto-close after brief success message
       setTimeout(() => {
         setSuccess("");
         onClose();
@@ -49,7 +42,7 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
       setError(
         err?.data?.error?.message ||
           err?.data?.message ||
-          "Failed to add member"
+          "Failed to add member",
       );
     }
   };
@@ -76,13 +69,10 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
           </div>
         )}
 
-        {/* Info */}
         <p className="text-sm text-slate-400">
           Enter the email address of the person you'd like to invite. They must
           already have a TaskFlow account.
         </p>
-
-        {/* Email */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
             Email Address
@@ -97,7 +87,6 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
           />
         </div>
 
-        {/* Actions */}
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
