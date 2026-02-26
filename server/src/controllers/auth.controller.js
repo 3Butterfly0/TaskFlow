@@ -87,7 +87,7 @@ export const login = async (req, res, next) => {
       throw new ApiError(401, "Invalid email or password");
     }
 
-<<<<<<< HEAD
+// <<<<<<< HEAD
     if (user.mfaEnabled) {
       // Issue a short-lived temp token for MFA validation step
       const tempToken = jwt.sign(
@@ -108,9 +108,9 @@ export const login = async (req, res, next) => {
         );
     }
 
-=======
+// =======
     // ── Update lastSeen ───────────────────────────────
->>>>>>> parent of f23d175 (comments cleaning)
+// >>>>>>> parent of  f23d175 (comments cleaning)
     user.lastSeen = new Date();
     await user.save({ validateModifiedOnly: true });
 
