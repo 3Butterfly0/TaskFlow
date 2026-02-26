@@ -17,21 +17,21 @@ const router = Router();
 // All task routes are protected
 router.use(protect);
 
-// Board data
+// ── Board data ───────────────────────────────────────
 router.get("/", getTasksByProject);
 router.get("/my-tasks", getMyTasks);
 
-// Board ordering (must be before /:id)
+// ── Board ordering (must be before /:id) ─────────────
 router.patch("/reorder", reorderInsideColumn);
 router.patch("/move", moveAcrossColumns);
 
-// Task CRUD
+// ── Task CRUD ────────────────────────────────────────
 router.post("/", createTask);
 router.get("/:id", getTaskById);
 router.patch("/:id", updateTask);
 router.delete("/:id", deleteTask);
 
-// Comments
+// ── Comments ─────────────────────────────────────────
 router.post("/:id/comments", addComment);
 
 export default router;

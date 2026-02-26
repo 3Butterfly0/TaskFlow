@@ -21,6 +21,9 @@ export const getProjectAnalytics = async (req, res, next) => {
 
     const tasks = await Task.find({ projectId }).lean();
 
+    // ── Aggregation Logic ─────────────────────────────
+
+    // Status Distribution (by Column)
     // We need to map column IDs to titles from project.columns
     const columnMap = {};
     project.columns.forEach((c) => {

@@ -15,13 +15,13 @@ import protect from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// Public routes
+// ── Public routes ────────────────────────────────────
 router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
 router.post("/mfa/validate", validateMfa);
 
-// Protected routes
+// ── Protected routes ─────────────────────────────────
 router.get("/me", protect, getMe);
 router.patch("/profile", protect, updateProfile);
 router.patch("/password", protect, changePassword);

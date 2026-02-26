@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
-    // Production enhancements (per production-blueprint.md §4)
+    // ── Production enhancements (per production-blueprint.md §4) ──
     lastSeen: {
       type: Date,
       default: Date.now,
@@ -100,7 +100,7 @@ const userSchema = new mongoose.Schema(
 // `googleId` needs an explicit sparse index for optional Google OAuth lookups.
 userSchema.index({ googleId: 1 }, { sparse: true });
 
-// Pre-save: hash password
+// ── Pre-save: hash password ───────────────────────────
 userSchema.pre("save", async function (next) {
   // Only hash if password field was modified
   if (!this.isModified("password")) return next();
@@ -110,12 +110,12 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Instance method: compare password
+// ── Instance method: compare password ─────────────────
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method: strip sensitive fields
+// ── Instance method: strip sensitive fields ───────────
 userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;

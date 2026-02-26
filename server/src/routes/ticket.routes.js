@@ -11,7 +11,7 @@ const router = Router();
 // All ticket routes are protected
 router.use(protect);
 
-// Ticket routes
+// ── Ticket routes ────────────────────────────────────
 router.post("/", createTicket);
 router.get("/", getTickets);
 router.post("/:id/promote", promoteToTask);

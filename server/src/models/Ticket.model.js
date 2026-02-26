@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Ticket schema
+// ── Ticket schema ────────────────────────────────────
 const ticketSchema = new mongoose.Schema(
   {
     subject: {
@@ -47,7 +47,7 @@ const ticketSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Production enhancements (per production-blueprint.md §4)
+    // ── Production enhancements (per production-blueprint.md §4) ──
     attachments: [
       {
         url: { type: String, required: true },
@@ -71,7 +71,7 @@ const ticketSchema = new mongoose.Schema(
   },
 );
 
-// Indexes (per production-blueprint.md §4)
+// ── Indexes (per production-blueprint.md §4) ──────────
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ reporter: 1 });
 ticketSchema.index({ severity: 1 });

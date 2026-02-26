@@ -4,6 +4,10 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { emitToProject } from "../config/socket.js";
 
+// ──────────────────────────────────────────────────────
+// GET /api/projects/:projectId/members
+// Returns the project's members with role info
+// ──────────────────────────────────────────────────────
 export const getMembers = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -53,6 +57,10 @@ export const getMembers = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────────────
+// POST /api/projects/:projectId/members
+// Invite a user to the project by email
+// ──────────────────────────────────────────────────────
 export const addMember = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -63,13 +71,13 @@ export const addMember = async (req, res, next) => {
       throw new ApiError(400, "Email is required");
     }
 
-    // Find project
+    // ── Find project ─────────────────────────────────
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
     }
 
-    // Check permissions (Owner or Admin)
+    // ── Check permissions (Owner or Admin) ───────────
     const isOwner = project.owner.toString() === userId;
     const adminRole = project.roles.find(
       (r) => r.userId.toString() === userId && r.role === "admin",
@@ -82,20 +90,20 @@ export const addMember = async (req, res, next) => {
       );
     }
 
-    // Find user by email
+    // ── Find user by email ───────────────────────────
     const userToAdd = await User.findOne({ email: email.toLowerCase().trim() });
     if (!userToAdd) {
       throw new ApiError(404, "No user found with that email address");
     }
 
-    // Check if already a member
+    // ── Check if already a member ────────────────────
     if (
       project.members.some((m) => m.toString() === userToAdd._id.toString())
     ) {
       throw new ApiError(409, "User is already a member of this project");
     }
 
-    // Add member
+    // ── Add member ───────────────────────────────────
     project.members.push(userToAdd._id);
     await project.save();
 
@@ -109,7 +117,7 @@ export const addMember = async (req, res, next) => {
       role: "member",
     };
 
-    // Emit socket event
+    // ── Emit socket event ────────────────────────────
     emitToProject(projectId, "member.added", { member });
 
     res
@@ -120,6 +128,10 @@ export const addMember = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────────────
+// DELETE /api/projects/:projectId/members/:memberId
+// Remove a member from the project
+// ──────────────────────────────────────────────────────
 export const removeMember = async (req, res, next) => {
   try {
     const { projectId, memberId } = req.params;
@@ -130,7 +142,7 @@ export const removeMember = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // Check permissions (Owner or Admin)
+    // ── Check permissions (Owner or Admin) ───────────
     const isOwner = project.owner.toString() === userId;
     const adminRole = project.roles.find(
       (r) => r.userId.toString() === userId && r.role === "admin",
@@ -143,7 +155,7 @@ export const removeMember = async (req, res, next) => {
       );
     }
 
-    // Check target role limitations
+    // ── Check target role limitations ────────────────
     const targetIsAdmin = project.roles.some(
       (r) => r.userId.toString() === memberId && r.role === "admin",
     );
@@ -153,12 +165,12 @@ export const removeMember = async (req, res, next) => {
       throw new ApiError(403, "Admins cannot remove other admins");
     }
 
-    // Cannot remove the owner
+    // ── Cannot remove the owner ──────────────────────
     if (project.owner.toString() === memberId) {
       throw new ApiError(400, "Cannot remove the project owner");
     }
 
-    // Check member exists
+    // ── Check member exists ──────────────────────────
     const memberIndex = project.members.findIndex(
       (m) => m.toString() === memberId,
     );
@@ -166,11 +178,11 @@ export const removeMember = async (req, res, next) => {
       throw new ApiError(404, "Member not found in this project");
     }
 
-    // Remove member
+    // ── Remove member ────────────────────────────────
     project.members.splice(memberIndex, 1);
     await project.save();
 
-    // Emit socket event
+    // ── Emit socket event ────────────────────────────
     emitToProject(projectId, "member.removed", { memberId });
 
     res
@@ -181,6 +193,10 @@ export const removeMember = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────────────
+// PATCH /api/projects/:projectId/members/:memberId/role
+// Transfer ownership (since roles are owner-based)
+// ──────────────────────────────────────────────────────
 export const transferOwnership = async (req, res, next) => {
   try {
     const { projectId, memberId } = req.params;
@@ -191,22 +207,22 @@ export const transferOwnership = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // Only current owner can transfer
+    // ── Only current owner can transfer ──────────────
     if (project.owner.toString() !== userId) {
       throw new ApiError(403, "Only the project owner can transfer ownership");
     }
 
-    // Verify target is a member
+    // ── Verify target is a member ────────────────────
     const isMember = project.members.some((m) => m.toString() === memberId);
     if (!isMember) {
       throw new ApiError(404, "Target user is not a member of this project");
     }
 
-    // Transfer ownership
+    // ── Transfer ownership ───────────────────────────
     project.owner = memberId;
     await project.save();
 
-    // Emit socket event
+    // ── Emit socket event ────────────────────────────
     emitToProject(projectId, "ownership.transferred", {
       newOwnerId: memberId,
       previousOwnerId: userId,
@@ -220,6 +236,10 @@ export const transferOwnership = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────────────
+// PATCH /api/projects/:projectId/members/:memberId/role
+// Update a member's role
+// ──────────────────────────────────────────────────────
 export const updateMemberRole = async (req, res, next) => {
   try {
     const { projectId, memberId } = req.params;
@@ -233,7 +253,7 @@ export const updateMemberRole = async (req, res, next) => {
     const project = await Project.findById(projectId);
     if (!project) throw new ApiError(404, "Project not found");
 
-    // Check permissions (Owner or Admin)
+    // ── Check permissions (Owner or Admin) ───────────
     const isOwner = project.owner.toString() === userId;
     const myRole = project.roles?.find(
       (r) => r.userId.toString() === userId && r.role === "admin",
@@ -246,12 +266,12 @@ export const updateMemberRole = async (req, res, next) => {
       );
     }
 
-    // Check target
+    // ── Check target ─────────────────────────────────
     if (memberId === project.owner.toString()) {
       throw new ApiError(403, "Cannot change role of the owner");
     }
 
-    // Admin restrictions
+    // ── Admin restrictions ───────────────────────────
     if (!isOwner) {
       // Admins cannot target other Admins
       const targetIsAdmin = project.roles?.find(
@@ -266,7 +286,7 @@ export const updateMemberRole = async (req, res, next) => {
       }
     }
 
-    // Update role
+    // ── Update role ──────────────────────────────────
     if (!project.roles) project.roles = []; // Ensure roles exists
 
     const roleIndex = project.roles.findIndex(
@@ -285,7 +305,7 @@ export const updateMemberRole = async (req, res, next) => {
 
     await project.save();
 
-    // Emit socket event
+    // ── Emit socket event ────────────────────────────
     emitToProject(projectId, "member.updated", { memberId, role });
 
     res

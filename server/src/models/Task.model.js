@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Subtask sub-schema (embedded)
+// ── Subtask sub-schema (embedded) ────────────────────
 const subtaskSchema = new mongoose.Schema(
   {
     title: {
@@ -16,7 +16,7 @@ const subtaskSchema = new mongoose.Schema(
   { _id: true },
 );
 
-// Comment sub-schema (embedded)
+// ── Comment sub-schema (embedded) ────────────────────
 const commentSchema = new mongoose.Schema(
   {
     text: {
@@ -37,7 +37,7 @@ const commentSchema = new mongoose.Schema(
   { _id: true },
 );
 
-// Activity log sub-schema (embedded, structured events)
+// ── Activity log sub-schema (embedded, structured events) ──
 // Per production-blueprint.md §5 – never store as plain text
 const activityLogSchema = new mongoose.Schema(
   {
@@ -75,7 +75,7 @@ const activityLogSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// Attachment sub-schema
+// ── Attachment sub-schema ────────────────────────────
 const attachmentSchema = new mongoose.Schema(
   {
     url: {
@@ -90,7 +90,7 @@ const attachmentSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// Task schema
+// ── Task schema ──────────────────────────────────────
 const taskSchema = new mongoose.Schema(
   {
     title: {
@@ -135,7 +135,7 @@ const taskSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Production enhancements (per production-blueprint.md §4)
+    // ── Production enhancements (per production-blueprint.md §4) ──
     position: {
       type: Number,
       default: 0,
@@ -160,7 +160,7 @@ const taskSchema = new mongoose.Schema(
       },
     ],
 
-    // History & Status Fields
+    // ── History & Status Fields ───────────────────────
     status: {
       type: String,
       enum: ["active", "completed", "cancelled", "rejected"],
@@ -191,7 +191,7 @@ const taskSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Embedded sub-documents
+    // ── Embedded sub-documents ────────────────────────
     attachments: [attachmentSchema],
     subtasks: [subtaskSchema],
     comments: [commentSchema],
@@ -202,7 +202,7 @@ const taskSchema = new mongoose.Schema(
   },
 );
 
-// Indexes (per production-blueprint.md §4)
+// ── Indexes (per production-blueprint.md §4) ──────────
 taskSchema.index({ projectId: 1 });
 taskSchema.index({ columnId: 1 });
 taskSchema.index({ assignees: 1 });
