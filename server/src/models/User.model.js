@@ -41,7 +41,16 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["admin", "member", "observer"],
-      default: "member",
+    },
+
+    mfaSecret: {
+      type: String,
+      select: false, // Never return to client
+    },
+
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
     },
 
     // Production enhancements (per production-blueprint.md §4)

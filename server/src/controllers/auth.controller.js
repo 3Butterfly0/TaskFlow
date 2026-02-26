@@ -2,6 +2,8 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import speakeasy from "speakeasy";
+import qrcode from "qrcode";
 
 const generateTokenAndSetCookie = (res, userId) => {
   const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -71,6 +73,27 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       throw new ApiError(401, "Invalid email or password");
     }
+
+    if (user.mfaEnabled) {
+      // Issue a short-lived temp token for MFA validation step
+      const tempToken = jwt.sign(
+        { id: user._id, mfaPending: true },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "5m",
+        },
+      );
+      return res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            { requiresMfa: true, tempToken },
+            "MFA required",
+          ),
+        );
+    }
+
     user.lastSeen = new Date();
     await user.save({ validateModifiedOnly: true });
 
@@ -116,6 +139,218 @@ export const getMe = async (req, res, next) => {
     res
       .status(200)
       .json(new ApiResponse(200, user.toSafeObject(), "User profile fetched"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PATCH /api/auth/profile
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { username } = req.body;
+
+    if (!username || username.trim() === "") {
+      throw new ApiError(400, "Username is required");
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    user.username = username.trim();
+    await user.save({ validateModifiedOnly: true });
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          user.toSafeObject(),
+          "Profile updated successfully",
+        ),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PATCH /api/auth/password
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      throw new ApiError(400, "Current and new passwords are required");
+    }
+
+    if (newPassword.length < 6) {
+      throw new ApiError(400, "New password must be at least 6 characters");
+    }
+
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      throw new ApiError(401, "Current password is incorrect");
+    }
+
+    user.password = newPassword;
+    // Pre-save hook will hash it
+    await user.save();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, "Password changed successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/mfa/setup
+export const setupMfa = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) throw new ApiError(404, "User not found");
+    if (user.mfaEnabled) throw new ApiError(400, "MFA is already enabled");
+
+    const secret = speakeasy.generateSecret({
+      name: `TaskFlow (${user.email})`,
+    });
+    const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+
+    // Save secret temporarily (not fully enabled until verified)
+    user.mfaSecret = secret.base32;
+    await user.save({ validateModifiedOnly: true });
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { secret: secret.base32, qrCode: qrCodeDataUrl },
+          "MFA setup initialized",
+        ),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/mfa/verify
+export const verifyMfa = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new ApiError(400, "Token is required");
+
+    const user = await User.findById(req.user.id).select("+mfaSecret");
+    if (!user) throw new ApiError(404, "User not found");
+    if (!user.mfaSecret) throw new ApiError(400, "MFA setup not initialized");
+
+    const isValid = speakeasy.totp.verify({
+      secret: user.mfaSecret,
+      encoding: "base32",
+      token,
+      window: 1, // Allow 30 seconds drift either side
+    });
+
+    if (!isValid) throw new ApiError(400, "Invalid code. Please try again.");
+
+    user.mfaEnabled = true;
+    await user.save({ validateModifiedOnly: true });
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, null, "MFA verified and enabled successfully"),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/mfa/disable
+export const disableMfa = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) throw new ApiError(400, "Token is required");
+
+    const user = await User.findById(req.user.id).select("+mfaSecret");
+    if (!user) throw new ApiError(404, "User not found");
+    if (!user.mfaEnabled) throw new ApiError(400, "MFA is not enabled");
+
+    const isValid = speakeasy.totp.verify({
+      secret: user.mfaSecret,
+      encoding: "base32",
+      token,
+      window: 1,
+    });
+
+    if (!isValid) throw new ApiError(400, "Invalid code. Please try again.");
+
+    user.mfaEnabled = false;
+    user.mfaSecret = undefined;
+    await user.save();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, "MFA disabled successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/mfa/validate
+export const validateMfa = async (req, res, next) => {
+  try {
+    const { tempToken, token } = req.body;
+
+    if (!tempToken || !token) {
+      throw new ApiError(400, "Temporary token and 2FA code are required");
+    }
+
+    // Verify temp token
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (err) {
+      throw new ApiError(
+        401,
+        "Expired or invalid temporary token. Please login again.",
+      );
+    }
+
+    if (!decoded.mfaPending) {
+      throw new ApiError(400, "Invalid token type");
+    }
+
+    const user = await User.findById(decoded.id).select("+mfaSecret");
+    if (!user || !user.mfaEnabled) {
+      throw new ApiError(400, "Invalid MFA state");
+    }
+
+    const isValid = speakeasy.totp.verify({
+      secret: user.mfaSecret,
+      encoding: "base32",
+      token,
+      window: 1,
+    });
+
+    if (!isValid) throw new ApiError(400, "Invalid code. Please try again.");
+
+    user.lastSeen = new Date();
+    await user.save({ validateModifiedOnly: true });
+
+    generateTokenAndSetCookie(res, user._id);
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, user.toSafeObject(), "Logged in successfully"),
+      );
   } catch (error) {
     next(error);
   }
