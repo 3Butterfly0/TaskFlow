@@ -8,6 +8,8 @@ import {
   updateLastAccessed,
   getProjectMembers,
   addColumn,
+  updateProject,
+  transferOwnership,
 } from "../controllers/project.controller.js";
 import protect from "../middlewares/auth.middleware.js";
 
@@ -21,7 +23,9 @@ router.post("/", createProject);
 router.get("/", getProjects);
 
 router.get("/:id", getProjectById);
+router.patch("/:id", updateProject);
 router.delete("/:id", deleteProject);
+router.patch("/:id/transfer", transferOwnership);
 router.post("/:id/pin", togglePinProject);
 router.post("/:id/access", updateLastAccessed);
 // router.get("/:id/members", getProjectMembers); // Moved to team.routes.js

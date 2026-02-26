@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   useGetProjectByIdQuery,
   useDeleteProjectMutation,
-  useTogglePinProjectMutation,
+  useUpdateProjectMutation,
+  useTransferOwnershipMutation,
 } from "../features/projects/projectApi";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../features/auth/authSlice";
@@ -16,7 +17,7 @@ import {
   Pin,
 } from "lucide-react";
 import SettingsLayout from "../components/settings/SettingsLayout";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 
 const Settings = () => {
   const { projectId } = useParams();
@@ -24,13 +25,31 @@ const Settings = () => {
   const { data: projectData, isLoading: isProjectLoading } =
     useGetProjectByIdQuery(projectId);
   const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
-  const [togglePin, { isLoading: isPinning }] = useTogglePinProjectMutation();
+  const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
+  const [transferOwnership, { isLoading: isTransferring }] =
+    useTransferOwnershipMutation();
   const user = useSelector(selectCurrentUser);
   const [activeTab, setActiveTab] = useState("general");
 
-  const isPinned = user?.pinnedProjects?.includes(projectId);
-
   const project = projectData?.data;
+  const isOwner = project?.owner?._id === user?._id;
+
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    visibility: "private",
+  });
+  const [newOwnerId, setNewOwnerId] = useState("");
+
+  useEffect(() => {
+    if (project) {
+      setFormData({
+        name: project.name || "",
+        description: project.description || "",
+        visibility: project.visibility || "private",
+      });
+    }
+  }, [project]);
 
   const tabs = [
     { id: "general", label: "General", icon: SettingsIcon },
@@ -50,15 +69,36 @@ const Settings = () => {
       await deleteProject(projectId).unwrap();
       navigate("/");
     } catch (err) {
-      console.error("Failed to delete project", err);
+      toast.error("Failed to delete project");
     }
   };
 
-  const handlePin = async () => {
+  const handleUpdate = async (e) => {
+    e.preventDefault();
     try {
-      await togglePin(projectId).unwrap();
+      await updateProject({ id: projectId, ...formData }).unwrap();
+      toast.success("Project updated successfully");
     } catch (err) {
-      console.error("Failed to pin project", err);
+      toast.error(err?.data?.message || "Failed to update project");
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (!newOwnerId)
+      return toast.error("Select a member to transfer ownership");
+    if (
+      !window.confirm(
+        "Are you sure you want to transfer ownership? You will lose admin rights.",
+      )
+    )
+      return;
+
+    try {
+      await transferOwnership({ id: projectId, newOwnerId }).unwrap();
+      toast.success("Ownership transferred successfully");
+      navigate("/");
+    } catch (err) {
+      toast.error(err?.data?.message || "Failed to transfer ownership");
     }
   };
 
@@ -92,29 +132,21 @@ const Settings = () => {
               </h2>
               <p className="text-sm text-slate-400">Update project details.</p>
             </div>
-            <button
-              onClick={handlePin}
-              disabled={isPinning}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                isPinned
-                  ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
-                  : "border-slate-700 bg-slate-800 text-slate-400 hover:text-white"
-              }`}
-            >
-              <Pin className={`size-3 ${isPinned ? "fill-current" : ""}`} />
-              {isPinned ? "Pinned" : "Pin Project"}
-            </button>
           </div>
 
-          <div className="space-y-4">
+          <form onSubmit={handleUpdate} className="space-y-4 pt-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-300">
                 Project Name
               </label>
               <input
                 type="text"
-                defaultValue={project.name}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                disabled={!isOwner}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
               />
             </div>
             <div>
@@ -122,9 +154,13 @@ const Settings = () => {
                 Description
               </label>
               <textarea
-                defaultValue={project.description}
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                disabled={!isOwner}
                 rows={3}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
               />
             </div>
             <div>
@@ -132,20 +168,30 @@ const Settings = () => {
                 Visibility
               </label>
               <select
-                defaultValue={project.visibility || "private"}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500"
+                value={formData.visibility}
+                onChange={(e) =>
+                  setFormData({ ...formData, visibility: e.target.value })
+                }
+                disabled={!isOwner}
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500 disabled:opacity-50"
               >
                 <option value="private">Private (Components only)</option>
                 <option value="public">Public (Visible to everyone)</option>
               </select>
             </div>
-          </div>
 
-          <div className="flex justify-end pt-4">
-            <button className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
-              Save Changes
-            </button>
-          </div>
+            {isOwner && (
+              <div className="flex justify-end pt-4">
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                >
+                  {isUpdating ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            )}
+          </form>
         </div>
       )}
 
@@ -220,25 +266,67 @@ const Settings = () => {
             </p>
           </div>
 
-          <div className="rounded-xl border border-red-500/20 bg-red-950/10 p-6">
-            <div className="mb-4 flex items-center gap-3 text-red-400">
-              <Trash2 className="size-5" />
-              <h3 className="font-semibold">Delete Project</h3>
+          {!isOwner ? (
+            <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-6 text-center text-slate-400">
+              Only the project owner can access these settings.
             </div>
-            <p className="mb-4 text-sm text-slate-400">
-              Deleting a project will permanently remove all associated tasks,
-              columns, and data.
-              <br />
-              <strong>This action cannot be undone.</strong>
-            </p>
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
-            >
-              {isDeleting ? "Deleting..." : "Delete Project"}
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 p-6">
+                <div className="mb-4 flex items-center gap-3 text-orange-400">
+                  <Users className="size-5" />
+                  <h3 className="font-semibold">Transfer Ownership</h3>
+                </div>
+                <p className="mb-4 text-sm text-slate-400">
+                  Transfer this project to another team member. You will lose
+                  owner privileges.
+                </p>
+                <div className="flex gap-3">
+                  <select
+                    value={newOwnerId}
+                    onChange={(e) => setNewOwnerId(e.target.value)}
+                    className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-white outline-none focus:border-indigo-500"
+                  >
+                    <option value="">Select a member...</option>
+                    {project.members
+                      ?.filter((m) => m._id !== user?._id)
+                      .map((member) => (
+                        <option key={member._id} value={member._id}>
+                          {member.username} ({member.email})
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    onClick={handleTransfer}
+                    disabled={isTransferring || !newOwnerId}
+                    className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-500 disabled:opacity-50 transition-colors whitespace-nowrap"
+                  >
+                    {isTransferring ? "Transferring..." : "Transfer"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-red-500/20 bg-red-950/10 p-6">
+                <div className="mb-4 flex items-center gap-3 text-red-400">
+                  <Trash2 className="size-5" />
+                  <h3 className="font-semibold">Delete Project</h3>
+                </div>
+                <p className="mb-4 text-sm text-slate-400">
+                  Deleting a project will permanently remove all associated
+                  tasks, columns, and data.
+                  <br />
+                  <strong>This action cannot be undone.</strong>
+                </p>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
+                >
+                  {isDeleting ? "Deleting..." : "Delete Project"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </SettingsLayout>

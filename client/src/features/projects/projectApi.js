@@ -66,6 +66,27 @@ export const projectApi = baseApi.injectEndpoints({
         { type: "Project", id: projectId },
       ],
     }),
+
+    updateProject: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/projects/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Project", id: "LIST" },
+        { type: "Project", id },
+      ],
+    }),
+
+    transferOwnership: builder.mutation({
+      query: ({ id, newOwnerId }) => ({
+        url: `/projects/${id}/transfer`,
+        method: "PATCH",
+        body: { newOwnerId },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "Project", id }],
+    }),
   }),
 });
 
@@ -78,4 +99,6 @@ export const {
   useUpdateLastAccessedMutation,
   useGetProjectMembersQuery,
   useAddColumnMutation,
+  useUpdateProjectMutation,
+  useTransferOwnershipMutation,
 } = projectApi;

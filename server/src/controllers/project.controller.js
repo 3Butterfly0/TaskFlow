@@ -255,3 +255,83 @@ export const addColumn = async (req, res, next) => {
     next(error);
   }
 };
+
+// ──────────────────────────────────────────────────────
+// PATCH /api/projects/:id
+// Update project details (owner only)
+// ──────────────────────────────────────────────────────
+export const updateProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, description, visibility } = req.body;
+    const userId = req.user.id;
+
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    if (project.owner.toString() !== userId) {
+      throw new ApiError(403, "Only the project owner can update this project");
+    }
+
+    if (name) project.name = name;
+    if (description !== undefined) project.description = description;
+    if (visibility) project.visibility = visibility;
+
+    await project.save();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, project, "Project updated successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// PATCH /api/projects/:id/transfer
+// Transfer ownership of a project
+// ──────────────────────────────────────────────────────
+export const transferOwnership = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { newOwnerId } = req.body;
+    const userId = req.user.id;
+
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    if (project.owner.toString() !== userId) {
+      throw new ApiError(403, "Only the current owner can transfer ownership");
+    }
+
+    if (!newOwnerId) {
+      throw new ApiError(400, "New owner ID is required");
+    }
+
+    // Check if newOwnerId is a member
+    const isMember = project.members.some(
+      (memberId) => memberId.toString() === newOwnerId,
+    );
+    if (!isMember) {
+      throw new ApiError(
+        400,
+        "New owner must be a member of the project first",
+      );
+    }
+
+    project.owner = newOwnerId;
+    await project.save();
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          project,
+          "Project ownership transferred successfully",
+        ),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
