@@ -127,7 +127,7 @@ const Calendar = () => {
         </div>
       </div>
 
-      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-visible calendar-wrapper custom-scrollbar">
+      <div className="flex-1 min-h-0 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-hidden calendar-wrapper custom-scrollbar">
         <style
           dangerouslySetInnerHTML={{
             __html: `

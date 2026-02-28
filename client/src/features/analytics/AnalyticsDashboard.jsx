@@ -198,7 +198,12 @@ const AnalyticsDashboard = ({ projectId }) => {
                 Task Status Distribution
               </h3>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                  minWidth={1}
+                  minHeight={1}
+                >
                   <PieChart>
                     <Pie
                       data={analytics.byStatus}
@@ -253,7 +258,12 @@ const AnalyticsDashboard = ({ projectId }) => {
                 Priority Completion Rates
               </h3>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                  minWidth={1}
+                  minHeight={1}
+                >
                   <BarChart
                     data={analytics.byPriority}
                     margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -298,7 +308,12 @@ const AnalyticsDashboard = ({ projectId }) => {
                   Team Workload Breakdown
                 </h3>
                 <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={1}
+                    minHeight={1}
+                  >
                     <BarChart
                       data={assigneeData}
                       layout="vertical"

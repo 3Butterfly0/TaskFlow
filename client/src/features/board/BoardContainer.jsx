@@ -95,8 +95,9 @@ const BoardContainer = ({
       setActiveTask(task);
 
       // Record which column this task is dragged FROM
-      // using SERVER state (the truth before any optimism)
-      const sourceCol = serverColumns.find((col) =>
+      // Use currentCols to ensure we capture optimistic task locations gracefully
+      const currentCols = optimisticColumns || serverColumns;
+      const sourceCol = currentCols.find((col) =>
         (col.taskIds || []).includes(active.id),
       );
       dragOriginRef.current = {
@@ -105,7 +106,7 @@ const BoardContainer = ({
         sourceTaskIds: sourceCol ? [...sourceCol.taskIds] : [],
       };
     },
-    [taskMap, serverColumns],
+    [taskMap, serverColumns, optimisticColumns],
   );
 
   const handleDragOver = useCallback(
@@ -229,38 +230,51 @@ const BoardContainer = ({
         } catch {
           setOptimisticColumns(null);
         }
-      } else {
         // ── Cross-column move ──────────────────────
-        // Source = where the task was in server state (origin ref)
-        // Destination = where optimistic state placed the task
+        const sourceColumnId = origin.sourceColumnId;
+        const destinationColumnId = currentColumn.id;
 
         // Build clean source taskIds (task removed)
         const newSourceTaskIds = origin.sourceTaskIds.filter(
-          (id) => id !== activeId,
+          (id) => String(id) !== String(activeId),
         );
 
-        // Build clean destination taskIds (task included, no duplicates)
-        const newDestTaskIds = (currentColumn.taskIds || []).filter(
-          (id) => id !== activeId,
+        // Build clean destination taskIds (ensure no duplicates)
+        const newDestTaskIds = [...(currentColumn.taskIds || [])].filter(
+          (id) => String(id) !== String(activeId),
         );
-        // Re-insert at the correct position
-        const insertIdx = (currentColumn.taskIds || []).indexOf(activeId);
+
+        // Re-insert at correct position (which is where activeId is sitting right now)
+        const insertIdx = (currentColumn.taskIds || []).findIndex(
+          (id) => String(id) === String(activeId),
+        );
         if (insertIdx >= 0) {
           newDestTaskIds.splice(insertIdx, 0, activeId);
         } else {
           newDestTaskIds.push(activeId);
         }
 
-        try {
-          await moveTask({
-            projectId,
-            taskId: activeId,
-            sourceColumnId: origin.sourceColumnId,
-            destinationColumnId: currentColumn.id,
-            newSourceTaskIds,
-            newDestinationTaskIds: newDestTaskIds,
-          }).unwrap();
-        } catch {
+        if (sourceColumnId && destinationColumnId) {
+          try {
+            await moveTask({
+              projectId,
+              taskId: activeId,
+              sourceColumnId,
+              destinationColumnId,
+              newSourceTaskIds,
+              newDestinationTaskIds: newDestTaskIds,
+            }).unwrap();
+          } catch (err) {
+            console.error("Move Task Failed:", err, {
+              sourceColumnId,
+              destinationColumnId,
+              activeId,
+              newSourceTaskIds,
+              newDestTaskIds,
+            });
+            setOptimisticColumns(null);
+          }
+        } else {
           setOptimisticColumns(null);
         }
       }

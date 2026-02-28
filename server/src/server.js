@@ -20,6 +20,20 @@ const PORT = process.env.PORT || 5000;
  * a graceful shutdown so the process manager can restart the service.
  */
 const startServer = async () => {
+  // 0. Environment Check
+  const requiredEnvVars = ["JWT_SECRET", "MONGO_URI", "CLIENT_URL"];
+  const missingEnvVars = requiredEnvVars.filter(
+    (envVar) => !process.env[envVar],
+  );
+  if (missingEnvVars.length > 0) {
+    logger.error(
+      `FATAL EXCEPTION: Missing critical environment variables: ${missingEnvVars.join(
+        ", ",
+      )}\nServer cannot start.`,
+    );
+    process.exit(1);
+  }
+
   // 1. Database
   await connectDB();
 

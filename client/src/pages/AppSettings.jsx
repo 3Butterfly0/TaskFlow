@@ -16,7 +16,7 @@ import { baseApi } from "../app/baseApi";
 import { useNavigate } from "react-router-dom";
 import { User, Bell, Palette, Shield, LogOut } from "lucide-react";
 import SettingsLayout from "../components/settings/SettingsLayout";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 const AppSettings = () => {
   const user = useSelector(selectCurrentUser);
@@ -78,10 +78,7 @@ const AppSettings = () => {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      const res = await updateProfile({ username }).unwrap();
-      dispatch(clearCredentials()); // Clear to force re-fetch or just update token, actually setCredentials is better
-      // Wait, we have authSlice setCredentials
-      window.location.reload(); // Simple temp workaround since setCredentials isn't imported
+      await updateProfile({ username }).unwrap();
       toast.success("Profile updated successfully");
     } catch (err) {
       toast.error(err?.data?.message || "Failed to update profile");
@@ -133,7 +130,6 @@ const AppSettings = () => {
         token: "",
         isDisabling: false,
       });
-      window.location.reload();
     } catch (err) {
       toast.error(err?.data?.message || "Invalid code. Please try again.");
     }
@@ -151,7 +147,6 @@ const AppSettings = () => {
         token: "",
         isDisabling: false,
       });
-      window.location.reload();
     } catch (err) {
       toast.error(err?.data?.message || "Invalid code. Please try again.");
     }
@@ -165,9 +160,6 @@ const AppSettings = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
     >
-      {/* ── Toaster ───────────────────────────────────── */}
-      <Toaster position="top-right" />
-
       {/* ── Content ───────────────────────────────────── */}
       {activeTab === "account" && (
         <div className="space-y-6">

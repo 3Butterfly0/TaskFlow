@@ -175,8 +175,8 @@ const Tickets = () => {
     error,
   } = useGetTicketsQuery({
     projectId,
-    status: undefined, // undefined to fetch all tickets
-    severity: undefined, // undefined to fetch all tickets
+    status: statusFilter || undefined,
+    severity: severityFilter || undefined,
   });
 
   const tickets = ticketsData?.data || [];
@@ -310,25 +310,15 @@ const Tickets = () => {
 
       {!isLoading && !isError && tickets.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
-          {tickets
-            .filter(
-              (t) =>
-                (!statusFilter || t.status === statusFilter) &&
-                (!severityFilter || t.severity === severityFilter),
-            )
-            .map((ticket) => (
-              <TicketRow
-                key={ticket._id}
-                ticket={ticket}
-                projectId={projectId}
-                onPromote={setPromoteTicket}
-              />
-            ))}
-          {tickets.filter(
-            (t) =>
-              (!statusFilter || t.status === statusFilter) &&
-              (!severityFilter || t.severity === severityFilter),
-          ).length === 0 && (
+          {tickets.map((ticket) => (
+            <TicketRow
+              key={ticket._id}
+              ticket={ticket}
+              projectId={projectId}
+              onPromote={setPromoteTicket}
+            />
+          ))}
+          {tickets.length === 0 && (
             <div className="p-8 text-center text-slate-500 text-sm">
               No tickets match the selected filters.
             </div>

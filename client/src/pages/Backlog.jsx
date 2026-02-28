@@ -156,23 +156,23 @@ const Backlog = () => {
                       className="text-sm text-slate-500 truncate cursor-pointer hover:text-indigo-400 decoration-dotted hover:underline"
                       onClick={() => setSelectedTaskId(task._id)}
                     >
-                      {task.description || "No description"}
+                      {task.content || "No description"}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {task.assignees?.[0] ? (
+                      {task.reporter ? (
                         <>
                           <img
                             src={
-                              task.assignees[0].avatar ||
+                              task.reporter.avatar ||
                               "https://ui-avatars.com/api/?name=" +
-                                task.assignees[0].username
+                                task.reporter.username
                             }
                             alt="User"
                             className="size-5 rounded-full object-cover"
                           />
                           <span className="text-xs text-slate-400 truncate">
-                            {task.assignees[0].username}
+                            {task.reporter.username}
                           </span>
                         </>
                       ) : (
@@ -241,7 +241,7 @@ const Backlog = () => {
               {tasks.find((t) => t._id === selectedTaskId)?.title}
             </h3>
             <div className="text-sm overflow-y-auto max-h-[60vh] whitespace-pre-wrap font-serif leading-relaxed">
-              {tasks.find((t) => t._id === selectedTaskId)?.description ||
+              {tasks.find((t) => t._id === selectedTaskId)?.content ||
                 "No description provided."}
             </div>
             <div className="mt-4 pt-4 border-t border-yellow-200/50 text-xs text-yellow-800/60 flex justify-between">
