@@ -1,10 +1,12 @@
-import { Outlet, useParams, Link } from "react-router-dom";
+import { Outlet, useParams, Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useGetProjectByIdQuery } from "../../features/projects/projectApi";
 import ProjectNavbar from "./ProjectNavbar";
 import { Settings, Loader } from "lucide-react";
 
 const ProjectLayout = () => {
   const { projectId } = useParams();
+  const location = useLocation();
   const { data: projectData, isLoading } = useGetProjectByIdQuery(projectId);
   const project = projectData?.data;
 
@@ -26,15 +28,7 @@ const ProjectLayout = () => {
 
   return (
     <div className="flex h-full flex-col bg-slate-950">
-      <header className="flex shrink-0 flex-col bg-slate-950 px-8 pt-2 pb-0 shadow-sm border-b border-slate-800">
-        <div className="mb-2 flex items-center gap-2 text-[13px] font-medium text-slate-500">
-          <Link to="/" className="hover:underline hover:text-indigo-400">
-            Workspaces
-          </Link>
-          <span>/</span>
-          <span className="text-slate-400">{project.name}</span>
-        </div>
-
+      <header className="flex shrink-0 flex-col bg-slate-950 px-8 pt-4 pb-0 shadow-sm border-b border-slate-800">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded bg-indigo-500/20 text-xl font-bold text-indigo-400 border border-indigo-500/30">
@@ -60,8 +54,19 @@ const ProjectLayout = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
-        <Outlet />
+      <div className="flex-1 overflow-hidden relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+            className="h-full w-full"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

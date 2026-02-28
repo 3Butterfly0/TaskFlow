@@ -6,6 +6,7 @@ import ApiResponse from "../utils/ApiResponse.js";
 export const getProjectAnalytics = async (req, res, next) => {
   try {
     const { projectId } = req.params;
+    const { scope } = req.query; // "all" or "me"
     const userId = req.user.id;
 
     const project = await Project.findById(projectId);
@@ -14,37 +15,77 @@ export const getProjectAnalytics = async (req, res, next) => {
     }
 
     const isOwner = project.owner.toString() === userId;
+    const isAdmin = project.roles.some(
+      (r) => r.userId.toString() === userId && r.role === "admin",
+    );
+    const hasAllAccess = isOwner || isAdmin;
+
     const isMember = project.members.some((m) => m.toString() === userId);
     if (!isOwner && !isMember) {
       throw new ApiError(403, "You do not have access to this project");
     }
 
-    const tasks = await Task.find({ projectId }).lean();
+    // Determine target scope
+    // Default: 'all' for owner/admin, 'me' for regular members
+    let targetScope = scope || (hasAllAccess ? "all" : "me");
+    if (targetScope === "all" && !hasAllAccess) {
+      targetScope = "me";
+    }
+
+    const allTasks = await Task.find({ projectId }).lean();
+
+    // Filter tasks based on scope
+    const tasks =
+      targetScope === "me"
+        ? allTasks.filter((t) =>
+            t.assignees?.some((id) => id.toString() === userId),
+          )
+        : allTasks;
 
     // ── Aggregation Logic ─────────────────────────────
 
-    // Status Distribution (by Column)
-    // We need to map column IDs to titles from project.columns
+    // 1. Column Mapping
     const columnMap = {};
     project.columns.forEach((c) => {
       columnMap[c.id] = c.title;
     });
 
     const tasksByStatus = {};
-    const tasksByPriority = { low: 0, medium: 0, high: 0, critical: 0 };
+    const priorityStats = {
+      low: { total: 0, completed: 0 },
+      medium: { total: 0, completed: 0 },
+      high: { total: 0, completed: 0 },
+      critical: { total: 0, completed: 0 },
+    };
     const tasksByAssignee = {};
+    const memberPerformance = {};
 
     // Initialize status counts
     Object.values(columnMap).forEach((title) => {
       tasksByStatus[title] = 0;
     });
-    tasksByStatus["Backlog"] = 0; // Explicit backlog bucket
+    tasksByStatus["Backlog"] = 0;
+
+    // Summary counters
+    let completedTasksCount = 0;
+    let overdueTasksCount = 0;
+    const now = new Date();
 
     tasks.forEach((task) => {
-      // Priority
+      const isCompleted = task.status === "completed";
+
+      if (isCompleted) {
+        completedTasksCount++;
+      } else if (task.dueDate && new Date(task.dueDate) < now) {
+        overdueTasksCount++;
+      }
+
+      // Priority completion rates
       if (task.priority) {
-        tasksByPriority[task.priority] =
-          (tasksByPriority[task.priority] || 0) + 1;
+        priorityStats[task.priority].total++;
+        if (isCompleted) {
+          priorityStats[task.priority].completed++;
+        }
       }
 
       // Status
@@ -66,24 +107,95 @@ export const getProjectAnalytics = async (req, res, next) => {
       }
     });
 
-    // Populate assignee names (could be expensive if many users, but fine for now)
-    // We need to fetch user details for keys in tasksByAssignee
-    // Optimization: We can rely on frontend to map IDs if we send project members,
-    // or we just do a quick lookup here.
-    // Let's rely on project.members populated? No project members aren't populated here.
-    // Let's just return IDs and let frontend map using Project context or member list.
+    // Calculate Per-Member Performance (only if hasAllAccess and targetScope is 'all')
+    if (hasAllAccess && targetScope === "all") {
+      project.members.forEach((memberId) => {
+        const idStr = memberId.toString();
+        memberPerformance[idStr] = {
+          taskCount: 0,
+          completedCount: 0,
+          totalTimeCompletedMs: 0,
+        };
+      });
+
+      allTasks.forEach((task) => {
+        // Use allTasks for accurate member stats
+        if (!task.assignees || task.assignees.length === 0) return;
+
+        task.assignees.forEach((assigneeId) => {
+          const idStr = assigneeId.toString();
+          if (!memberPerformance[idStr]) return;
+
+          memberPerformance[idStr].taskCount++;
+          if (task.status === "completed") {
+            memberPerformance[idStr].completedCount++;
+            if (task.completedAt && task.createdAt) {
+              const timeToCompleteMs =
+                new Date(task.completedAt).getTime() -
+                new Date(task.createdAt).getTime();
+              memberPerformance[idStr].totalTimeCompletedMs += timeToCompleteMs;
+            }
+          }
+        });
+      });
+    }
+
+    const formatMemberPerformance = () => {
+      return Object.entries(memberPerformance).map(([userId, stats]) => {
+        const rate =
+          stats.taskCount > 0
+            ? Math.round((stats.completedCount / stats.taskCount) * 100)
+            : 0;
+        const avgTimeMs =
+          stats.completedCount > 0
+            ? stats.totalTimeCompletedMs / stats.completedCount
+            : 0;
+        const avgTimeDays =
+          avgTimeMs > 0
+            ? parseFloat((avgTimeMs / (1000 * 60 * 60 * 24)).toFixed(1))
+            : 0;
+
+        return {
+          userId,
+          taskCount: stats.taskCount,
+          completedCount: stats.completedCount,
+          completionRate: rate,
+          avgTimeDays,
+        };
+      });
+    };
 
     const analytics = {
+      scope: targetScope,
+      hasAllAccess,
+      summary: {
+        totalTasks: tasks.length,
+        completedTasks: completedTasksCount,
+        pendingTasks: tasks.length - completedTasksCount,
+        completionRate:
+          tasks.length > 0
+            ? Math.round((completedTasksCount / tasks.length) * 100)
+            : 0,
+        overdueTasks: overdueTasksCount,
+      },
       byStatus: Object.entries(tasksByStatus).map(([name, value]) => ({
         name,
         value,
       })),
-      byPriority: Object.entries(tasksByPriority).map(([name, value]) => ({
+      byPriority: Object.entries(priorityStats).map(([name, stats]) => ({
         name,
-        value,
+        total: stats.total,
+        completed: stats.completed,
+        completionRate:
+          stats.total > 0
+            ? Math.round((stats.completed / stats.total) * 100)
+            : 0,
       })),
       byAssignee: tasksByAssignee, // { userId: count }
-      totalTasks: tasks.length,
+      perMemberPerformance:
+        hasAllAccess && targetScope === "all"
+          ? formatMemberPerformance()
+          : null,
     };
 
     res

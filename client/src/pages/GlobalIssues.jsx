@@ -179,7 +179,7 @@ const GlobalIssues = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-6 md:p-8">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader className="size-8 animate-spin text-indigo-500" />

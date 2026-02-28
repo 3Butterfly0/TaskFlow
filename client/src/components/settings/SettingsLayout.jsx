@@ -1,4 +1,6 @@
 import { cn } from "../../utils/cn";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const SettingsLayout = ({
   title,
@@ -8,11 +10,22 @@ const SettingsLayout = ({
   onTabChange,
   children,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">{title}</h1>
-        <p className="mt-1 text-sm text-slate-400">{description}</p>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-slate-800/50 px-3 py-1.5 text-sm font-medium text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700/50"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-white">{title}</h1>
+          <p className="mt-1 text-sm text-slate-400">{description}</p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row">

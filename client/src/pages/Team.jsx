@@ -291,285 +291,291 @@ const Team = () => {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Team</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage your project collaborators
-          </p>
+    <div className="h-full overflow-y-auto custom-scrollbar px-6 py-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Team</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Manage your project collaborators
+            </p>
+          </div>
+
+          {canInvite && (
+            <button
+              onClick={() => setInviteOpen(true)}
+              id="invite-member-btn"
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-600/30"
+            >
+              <UserPlus className="size-4" />
+              Invite Member
+            </button>
+          )}
         </div>
 
-        {canInvite && (
-          <button
-            onClick={() => setInviteOpen(true)}
-            id="invite-member-btn"
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-600/30"
-          >
-            <UserPlus className="size-4" />
-            Invite Member
-          </button>
-        )}
-      </div>
+        <StatsBar members={members} />
 
-      <StatsBar members={members} />
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search members by name or email…"
+            className="w-full rounded-xl border border-slate-800 bg-slate-900/50 pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-indigo-500/50"
+          />
+        </div>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search members by name or email…"
-          className="w-full rounded-xl border border-slate-800 bg-slate-900/50 pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-indigo-500/50"
-        />
-      </div>
+        <div className="overflow-x-auto rounded-xl border border-slate-800/60 bg-slate-900/40">
+          {filteredMembers.length === 0 ? (
+            <div className="py-8">
+              <EmptyState
+                icon={Users}
+                title={searchQuery ? "No members match" : "No team members yet"}
+                description={
+                  searchQuery
+                    ? "Try a different search term"
+                    : "Invite collaborators to get started"
+                }
+                className="border-none bg-transparent"
+              />
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm text-slate-400">
+              <thead className="bg-slate-900/80 text-xs uppercase text-slate-500 border-b border-slate-800/80">
+                <tr>
+                  <th className="px-5 py-4 font-semibold">Member</th>
+                  <th className="px-5 py-4 font-semibold">Role</th>
+                  <th className="px-5 py-4 font-semibold">
+                    Status / Last Seen
+                  </th>
+                  <th className="px-5 py-4 font-semibold text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {filteredMembers.map((member) => {
+                  const isSelf = member._id === currentUser?._id;
+                  const isTargetOwner = member.isOwner;
+                  const isTargetAdmin = member.role === "admin";
+                  const canManageRole =
+                    !isSelf &&
+                    !isTargetOwner &&
+                    (amIOwner || (amIAdmin && !isTargetAdmin));
+                  const canRemove = canManageRole;
+                  const canTransfer = amIOwner && !isSelf;
 
-      <div className="overflow-x-auto rounded-xl border border-slate-800/60 bg-slate-900/40">
-        {filteredMembers.length === 0 ? (
-          <div className="py-8">
-            <EmptyState
-              icon={Users}
-              title={searchQuery ? "No members match" : "No team members yet"}
-              description={
-                searchQuery
-                  ? "Try a different search term"
-                  : "Invite collaborators to get started"
-              }
-              className="border-none bg-transparent"
-            />
-          </div>
-        ) : (
-          <table className="w-full text-left text-sm text-slate-400">
-            <thead className="bg-slate-900/80 text-xs uppercase text-slate-500 border-b border-slate-800/80">
-              <tr>
-                <th className="px-5 py-4 font-semibold">Member</th>
-                <th className="px-5 py-4 font-semibold">Role</th>
-                <th className="px-5 py-4 font-semibold">Status / Last Seen</th>
-                <th className="px-5 py-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filteredMembers.map((member) => {
-                const isSelf = member._id === currentUser?._id;
-                const isTargetOwner = member.isOwner;
-                const isTargetAdmin = member.role === "admin";
-                const canManageRole =
-                  !isSelf &&
-                  !isTargetOwner &&
-                  (amIOwner || (amIAdmin && !isTargetAdmin));
-                const canRemove = canManageRole;
-                const canTransfer = amIOwner && !isSelf;
+                  const getInitials = (name) =>
+                    name
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2);
 
-                const getInitials = (name) =>
-                  name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2);
+                  const timeAgo = (dateStr) => {
+                    if (!dateStr) return "Never";
+                    const diff = Date.now() - new Date(dateStr).getTime();
+                    const minutes = Math.floor(diff / 60000);
+                    if (minutes < 1) return "Just now";
+                    if (minutes < 60) return `${minutes}m ago`;
+                    const hours = Math.floor(minutes / 60);
+                    if (hours < 24) return `${hours}h ago`;
+                    const days = Math.floor(hours / 24);
+                    return `${days}d ago`;
+                  };
 
-                const timeAgo = (dateStr) => {
-                  if (!dateStr) return "Never";
-                  const diff = Date.now() - new Date(dateStr).getTime();
-                  const minutes = Math.floor(diff / 60000);
-                  if (minutes < 1) return "Just now";
-                  if (minutes < 60) return `${minutes}m ago`;
-                  const hours = Math.floor(minutes / 60);
-                  if (hours < 24) return `${hours}h ago`;
-                  const days = Math.floor(hours / 24);
-                  return `${days}d ago`;
-                };
+                  return (
+                    <tr
+                      key={member._id}
+                      className="group transition-colors hover:bg-slate-800/30"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative shrink-0">
+                            {member.avatar ? (
+                              <img
+                                src={member.avatar}
+                                alt={member.username}
+                                className="size-9 rounded-full object-cover ring-2 ring-slate-800"
+                              />
+                            ) : (
+                              <div className="flex size-9 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white ring-2 ring-slate-800">
+                                {getInitials(member.username)}
+                              </div>
+                            )}
+                            {member.isOnline && (
+                              <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-slate-900 bg-emerald-500" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-white">
+                                {member.username}
+                              </p>
+                              {isSelf && (
+                                <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-500">
+                                  You
+                                </span>
+                              )}
+                              {member.isOwner && (
+                                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-500">
+                                  Owner
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              {member.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        {canManageRole ? (
+                          <div className="relative inline-block w-32">
+                            <select
+                              value={member.role}
+                              onChange={(e) =>
+                                handleUpdateRole(member._id, e.target.value)
+                              }
+                              className="w-full appearance-none rounded-lg border border-slate-700 bg-slate-800/50 py-1.5 pl-3 pr-8 text-xs font-medium text-slate-300 outline-none transition-colors focus:border-indigo-500 focus:bg-slate-800 focus:text-white"
+                            >
+                              <option value="admin">Admin</option>
+                              <option value="member">Member</option>
+                              <option value="observer">Observer</option>
+                            </select>
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                              <svg
+                                className="size-3"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="6 9 12 15 18 9" />
+                              </svg>
+                            </div>
+                          </div>
+                        ) : (
+                          <RoleBadge role={member.role} />
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        {member.isOnline ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                            <div className="size-1.5 rounded-full bg-emerald-400" />{" "}
+                            Online
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500">
+                            {timeAgo(member.lastSeen)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setTasksMember(member)}
+                            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:bg-slate-700 hover:text-white"
+                          >
+                            <ListTodo className="size-3.5" />
+                            <span className="hidden sm:inline">Tasks</span>
+                          </button>
 
-                return (
-                  <tr
-                    key={member._id}
-                    className="group transition-colors hover:bg-slate-800/30"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative shrink-0">
-                          {member.avatar ? (
-                            <img
-                              src={member.avatar}
-                              alt={member.username}
-                              className="size-9 rounded-full object-cover ring-2 ring-slate-800"
-                            />
-                          ) : (
-                            <div className="flex size-9 items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white ring-2 ring-slate-800">
-                              {getInitials(member.username)}
+                          {(canTransfer || canRemove) && (
+                            <div className="flex gap-1 border-l border-slate-800 pl-2 ml-1">
+                              {canTransfer && (
+                                <button
+                                  onClick={() => setTransferTarget(member)}
+                                  title="Transfer Ownership"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="size-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {canRemove && (
+                                <button
+                                  onClick={() => setRemoveTarget(member)}
+                                  title="Remove member"
+                                  className="rounded p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="size-4"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <line x1="17" y1="11" x2="22" y2="11" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           )}
-                          {member.isOnline && (
-                            <div className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-slate-900 bg-emerald-500" />
-                          )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-white">
-                              {member.username}
-                            </p>
-                            {isSelf && (
-                              <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-500">
-                                You
-                              </span>
-                            )}
-                            {member.isOwner && (
-                              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-500">
-                                Owner
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500">
-                            {member.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      {canManageRole ? (
-                        <div className="relative inline-block w-32">
-                          <select
-                            value={member.role}
-                            onChange={(e) =>
-                              handleUpdateRole(member._id, e.target.value)
-                            }
-                            className="w-full appearance-none rounded-lg border border-slate-700 bg-slate-800/50 py-1.5 pl-3 pr-8 text-xs font-medium text-slate-300 outline-none transition-colors focus:border-indigo-500 focus:bg-slate-800 focus:text-white"
-                          >
-                            <option value="admin">Admin</option>
-                            <option value="member">Member</option>
-                            <option value="observer">Observer</option>
-                          </select>
-                          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
-                            <svg
-                              className="size-3"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </div>
-                        </div>
-                      ) : (
-                        <RoleBadge role={member.role} />
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      {member.isOnline ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-                          <div className="size-1.5 rounded-full bg-emerald-400" />{" "}
-                          Online
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-500">
-                          {timeAgo(member.lastSeen)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setTasksMember(member)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:bg-slate-700 hover:text-white"
-                        >
-                          <ListTodo className="size-3.5" />
-                          <span className="hidden sm:inline">Tasks</span>
-                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-                        {(canTransfer || canRemove) && (
-                          <div className="flex gap-1 border-l border-slate-800 pl-2 ml-1">
-                            {canTransfer && (
-                              <button
-                                onClick={() => setTransferTarget(member)}
-                                title="Transfer Ownership"
-                                className="rounded p-1.5 text-slate-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="size-4"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                                </svg>
-                              </button>
-                            )}
-                            {canRemove && (
-                              <button
-                                onClick={() => setRemoveTarget(member)}
-                                title="Remove member"
-                                className="rounded p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="size-4"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                  <circle cx="9" cy="7" r="4" />
-                                  <line x1="17" y1="11" x2="22" y2="11" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <InviteMemberModal
+          isOpen={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          projectId={projectId}
+        />
+
+        <ConfirmDialog
+          isOpen={!!removeTarget}
+          title="Remove Member"
+          message={`Are you sure you want to remove ${removeTarget?.username}?`}
+          confirmLabel="Remove"
+          confirmColor="red"
+          onConfirm={handleRemove}
+          onCancel={() => setRemoveTarget(null)}
+          isLoading={isRemoving}
+        />
+
+        <ConfirmDialog
+          isOpen={!!transferTarget}
+          title="Transfer Ownership"
+          message={`Transfer ownership to ${transferTarget?.username}? You will lose owner privileges.`}
+          confirmLabel="Transfer"
+          confirmColor="amber"
+          onConfirm={handleTransfer}
+          onCancel={() => setTransferTarget(null)}
+          isLoading={isTransferring}
+        />
+
+        <AssignedTasksModal
+          isOpen={!!tasksMember}
+          onClose={() => setTasksMember(null)}
+          member={tasksMember}
+          projectId={projectId}
+        />
       </div>
-
-      <InviteMemberModal
-        isOpen={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        projectId={projectId}
-      />
-
-      <ConfirmDialog
-        isOpen={!!removeTarget}
-        title="Remove Member"
-        message={`Are you sure you want to remove ${removeTarget?.username}?`}
-        confirmLabel="Remove"
-        confirmColor="red"
-        onConfirm={handleRemove}
-        onCancel={() => setRemoveTarget(null)}
-        isLoading={isRemoving}
-      />
-
-      <ConfirmDialog
-        isOpen={!!transferTarget}
-        title="Transfer Ownership"
-        message={`Transfer ownership to ${transferTarget?.username}? You will lose owner privileges.`}
-        confirmLabel="Transfer"
-        confirmColor="amber"
-        onConfirm={handleTransfer}
-        onCancel={() => setTransferTarget(null)}
-        isLoading={isTransferring}
-      />
-
-      <AssignedTasksModal
-        isOpen={!!tasksMember}
-        onClose={() => setTasksMember(null)}
-        member={tasksMember}
-        projectId={projectId}
-      />
     </div>
   );
 };

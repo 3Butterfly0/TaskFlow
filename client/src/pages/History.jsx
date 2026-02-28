@@ -85,7 +85,7 @@ const History = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="size-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />

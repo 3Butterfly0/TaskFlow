@@ -208,7 +208,8 @@ export const updateLastAccessed = async (req, res, next) => {
 
     await User.findByIdAndUpdate(userId, {
       $pull: { lastAccessedProjects: { projectId: id } },
-    });
+    }); 
+
 
     await User.findByIdAndUpdate(userId, {
       $push: {
