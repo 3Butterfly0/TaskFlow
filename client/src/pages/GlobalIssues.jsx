@@ -100,7 +100,7 @@ const GlobalIssues = () => {
     <div className="flex h-full flex-col bg-slate-950">
       <header className="border-b border-slate-800 bg-slate-900/50 p-4 md:p-8 shrink-0">
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          Global Tickets
+          Global Issues
         </h1>
         <p className="text-sm text-slate-400 mb-6">
           Track and manage all tasks assigned to you across every workspace.

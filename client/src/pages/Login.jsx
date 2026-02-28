@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   useLoginMutation,
@@ -11,9 +11,14 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+
   const [login, { isLoading }] = useLoginMutation();
   const [validateMfa, { isLoading: isValidatingMfa }] =
     useValidateMfaMutation();
+
+  useEffect(() => {
+    document.title = "Sign In — TaskFlow";
+  }, []);
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");

@@ -6,7 +6,7 @@ import BoardContainer from "../features/board/BoardContainer";
 
 import TaskDetails from "../features/tasks/TaskDetails";
 
-import { AlertTriangle, Kanban, Search, Filter, User } from "lucide-react";
+import { AlertTriangle, Kanban } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
 import EmptyState from "../components/ui/EmptyState";
 
@@ -91,10 +91,11 @@ const Board = () => {
   const isLoading = isProjectLoading || isTasksLoading;
 
   // Check URL query param for task
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
-
-  const searchParams = new URLSearchParams(window.location.search);
-  const taskParam = searchParams.get("task");
+  const [selectedTaskId, setSelectedTaskId] = useState(
+    new URLSearchParams(window.location.search).get("task") ||
+      new URLSearchParams(window.location.search).get("taskId") ||
+      null,
+  );
 
   const handleOpenTask = useCallback((taskId) => {
     setSelectedTaskId(taskId);

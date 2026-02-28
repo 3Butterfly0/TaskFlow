@@ -14,10 +14,9 @@ import {
   Trash2,
   Globe,
   Shield,
-  Pin,
 } from "lucide-react";
 import SettingsLayout from "../components/settings/SettingsLayout";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 const Settings = () => {
   const { projectId } = useParams();
@@ -121,8 +120,6 @@ const Settings = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
     >
-      <Toaster position="top-right" />
-
       {activeTab === "general" && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -175,7 +172,7 @@ const Settings = () => {
                 disabled={!isOwner}
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-white outline-none focus:border-indigo-500 disabled:opacity-50"
               >
-                <option value="private">Private (Components only)</option>
+                <option value="private">Private (Members only)</option>
                 <option value="public">Public (Visible to everyone)</option>
               </select>
             </div>
@@ -194,7 +191,6 @@ const Settings = () => {
           </form>
         </div>
       )}
-
       {activeTab === "access" && (
         <div className="space-y-6">
           <div>
@@ -228,11 +224,15 @@ const Settings = () => {
           </div>
         </div>
       )}
-
       {activeTab === "integrations" && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">Integrations</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-white">Integrations</h2>
+              <span className="px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] uppercase font-bold text-slate-400">
+                Coming Soon
+              </span>
+            </div>
             <p className="text-sm text-slate-400">
               Connect with third-party tools.
             </p>
@@ -248,7 +248,10 @@ const Settings = () => {
                   <div className="size-8 rounded bg-slate-700" />
                   <span className="font-medium text-slate-200">{tool}</span>
                 </div>
-                <button className="rounded px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 border border-slate-600">
+                <button
+                  disabled
+                  className="rounded px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-800/50 border border-slate-700/50 cursor-not-allowed"
+                >
                   Connect
                 </button>
               </div>
@@ -256,7 +259,6 @@ const Settings = () => {
           </div>
         </div>
       )}
-
       {activeTab === "danger" && (
         <div className="space-y-6">
           <div>

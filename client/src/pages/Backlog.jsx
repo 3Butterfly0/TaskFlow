@@ -219,12 +219,12 @@ const Backlog = () => {
           onClick={() => setSelectedTaskId(null)}
         >
           <div
-            className="relative w-full max-w-md bg-yellow-100 text-yellow-900 rounded-lg shadow-xl p-6 rotate-1 transform transition-transform hover:rotate-0"
+            className="relative w-full max-w-md bg-slate-900 text-slate-200 border border-slate-700/80 rounded-lg shadow-2xl p-6 transform transition-transform"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setSelectedTaskId(null)}
-              className="absolute top-2 right-2 p-1 hover:bg-yellow-200/50 rounded-full"
+              className="absolute top-2 right-2 p-1 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"
             >
               <svg
                 className="size-4"
@@ -244,7 +244,7 @@ const Backlog = () => {
               {tasks.find((t) => t._id === selectedTaskId)?.content ||
                 "No description provided."}
             </div>
-            <div className="mt-4 pt-4 border-t border-yellow-200/50 text-xs text-yellow-800/60 flex justify-between">
+            <div className="mt-4 pt-4 border-t border-slate-800/80 text-xs text-slate-500 flex justify-between">
               <span>
                 Created:{" "}
                 {new Date(

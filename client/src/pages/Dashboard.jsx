@@ -82,7 +82,7 @@ const Dashboard = () => {
   const projects = data?.data || [];
 
   return (
-    <div className="p-6 h-full">
+    <div className="p-6 h-full overflow-y-auto custom-scrollbar">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Workspaces</h1>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useRegisterMutation } from "../features/auth/authApi";
 import { useDispatch } from "react-redux";
@@ -9,6 +9,9 @@ const Register = () => {
   const dispatch = useDispatch();
   const [register, { isLoading }] = useRegisterMutation();
 
+  useEffect(() => {
+    document.title = "Create Account — TaskFlow";
+  }, []);
   const [form, setForm] = useState({
     username: "",
     email: "",
