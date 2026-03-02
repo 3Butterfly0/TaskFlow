@@ -189,7 +189,7 @@ const Tickets = () => {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 pt-6 shrink-0">
         <button
           onClick={() => setShowRaiseModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-colors hover:bg-indigo-500"
+          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-colors hover:bg-indigo-500"
         >
           <svg
             className="size-4"
@@ -203,7 +203,7 @@ const Tickets = () => {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          + Ticket
+          Ticket
         </button>
 
         <div className="flex flex-wrap items-center gap-4">

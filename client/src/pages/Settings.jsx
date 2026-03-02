@@ -121,12 +121,9 @@ const Settings = () => {
       onTabChange={setActiveTab}
     >
       {activeTab === "general" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">
-                General Settings
-              </h2>
               <p className="text-sm text-slate-400">Update project details.</p>
             </div>
           </div>
@@ -192,24 +189,10 @@ const Settings = () => {
         </div>
       )}
       {activeTab === "access" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Access Control</h2>
             <p className="text-sm text-slate-400">
               Manage who can access this project.
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
-            <p className="text-sm text-slate-300">
-              To manage team members, please visit the{" "}
-              <button
-                onClick={() => navigate(`/projects/${projectId}/team`)}
-                className="text-indigo-400 hover:underline"
-              >
-                Team Page
-              </button>
-              .
             </p>
           </div>
 
@@ -225,15 +208,14 @@ const Settings = () => {
         </div>
       )}
       {activeTab === "integrations" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-white">Integrations</h2>
               <span className="px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] uppercase font-bold text-slate-400">
                 Coming Soon
               </span>
             </div>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-400 mt-2">
               Connect with third-party tools.
             </p>
           </div>
@@ -260,9 +242,8 @@ const Settings = () => {
         </div>
       )}
       {activeTab === "danger" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Danger Zone</h2>
             <p className="text-sm text-slate-400">
               Irreversible actions for this project.
             </p>

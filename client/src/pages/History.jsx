@@ -54,9 +54,7 @@ const History = () => {
 
   return (
     <div className="flex h-full flex-col bg-slate-950">
-      <div className="border-b border-slate-800 bg-slate-900/50 p-6">
-        <h1 className="text-xl font-bold text-white mb-4">Project History</h1>
-
+      <div className="border-b border-slate-800 bg-slate-900/50 px-6 py-4">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />

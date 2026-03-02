@@ -122,7 +122,6 @@ const AnalyticsDashboard = ({ projectId }) => {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header & Scope Toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-white">Project Analytics</h2>

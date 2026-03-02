@@ -111,10 +111,6 @@ const Board = () => {
     window.history.pushState({}, "", url);
   }, []);
 
-  useState(() => {
-    if (taskParam) setSelectedTaskId(taskParam);
-  });
-
   return (
     <div className="flex h-full flex-col p-8 pt-6 overflow-x-auto">
       {isProjectError && (

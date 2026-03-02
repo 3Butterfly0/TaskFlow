@@ -162,9 +162,8 @@ const AppSettings = () => {
     >
       {/* ── Content ───────────────────────────────────── */}
       {activeTab === "account" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Profile</h2>
             <p className="text-sm text-slate-400">
               Update your personal information.
             </p>
@@ -236,9 +235,8 @@ const AppSettings = () => {
       )}
 
       {activeTab === "notifications" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Notifications</h2>
             <p className="text-sm text-slate-400">
               Choose how you want to be notified.
             </p>
@@ -286,9 +284,8 @@ const AppSettings = () => {
       )}
 
       {activeTab === "appearance" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Appearance</h2>
             <p className="text-sm text-slate-400">
               Customize the look and feel.
             </p>
@@ -316,9 +313,8 @@ const AppSettings = () => {
       )}
 
       {activeTab === "security" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Security</h2>
             <p className="text-sm text-slate-400">
               Manage your password and security settings.
             </p>

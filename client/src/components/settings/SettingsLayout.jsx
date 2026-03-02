@@ -13,8 +13,8 @@ const SettingsLayout = ({
   const navigate = useNavigate();
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="flex h-full flex-col space-y-4 px-6 py-4">
+      <div className="flex shrink-0 items-center gap-4">
         <button
           onClick={() => navigate(-1)}
           className="flex shrink-0 items-center gap-2 rounded-lg bg-slate-800/50 px-3 py-1.5 text-sm font-medium text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700/50"
@@ -28,8 +28,8 @@ const SettingsLayout = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-8 lg:flex-row">
-        <aside className="w-full lg:w-64 shrink-0 space-y-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-8 lg:flex-row">
+        <aside className="w-full lg:w-64 shrink-0 space-y-1 overflow-y-auto custom-scrollbar">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -52,10 +52,8 @@ const SettingsLayout = ({
           })}
         </aside>
 
-        <div className="flex-1 space-y-6">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-            {children}
-          </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+          {children}
         </div>
       </div>
     </div>
