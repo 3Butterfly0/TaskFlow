@@ -1,12 +1,10 @@
-import { Outlet, useParams, Link, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { Outlet, useParams, Link } from "react-router-dom";
 import { useGetProjectByIdQuery } from "../../features/projects/projectApi";
 import ProjectNavbar from "./ProjectNavbar";
 import { Settings, Loader } from "lucide-react";
 
 const ProjectLayout = () => {
   const { projectId } = useParams();
-  const location = useLocation();
   const { data: projectData, isLoading } = useGetProjectByIdQuery(projectId);
   const project = projectData?.data;
 
@@ -55,18 +53,9 @@ const ProjectLayout = () => {
       </header>
 
       <div className="flex-1 overflow-hidden relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
-            className="h-full w-full"
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        <div className="h-full w-full">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

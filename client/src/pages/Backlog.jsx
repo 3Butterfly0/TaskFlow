@@ -88,13 +88,13 @@ const Backlog = () => {
   return (
     <div className="flex flex-col h-full bg-slate-950">
       <div className="flex-1 overflow-y-auto w-full custom-scrollbar">
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="px-6 py-4 max-w-7xl mx-auto">
           <div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white">Backlog</h2>
                 <span className="text-slate-500 text-sm font-normal">
-                  ({backlogTasks.length} issues)
+                  {backlogTasks.length}{" "}
+                  {backlogTasks.length === 1 ? "issue" : "issues"}
                 </span>
               </div>
 

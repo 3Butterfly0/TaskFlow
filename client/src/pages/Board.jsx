@@ -112,7 +112,7 @@ const Board = () => {
   }, []);
 
   return (
-    <div className="flex h-full flex-col p-8 pt-6 overflow-x-auto">
+    <div className="flex h-full flex-col px-6 py-4 overflow-x-auto">
       {isProjectError && (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
