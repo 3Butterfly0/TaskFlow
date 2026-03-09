@@ -1,9 +1,9 @@
 import { useState } from "react";
 import Modal from "../../components/ui/Modal";
-import { useAddMemberMutation } from "./teamApi";
+import { useInviteToProjectMutation } from "./teamApi";
 
 const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
-  const [addMember, { isLoading }] = useAddMemberMutation();
+  const [inviteToProject, { isLoading }] = useInviteToProjectMutation();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -24,14 +24,12 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
     }
 
     try {
-      const result = await addMember({
+      await inviteToProject({
         projectId,
         email: email.trim(),
       }).unwrap();
 
-      setSuccess(
-        `${result.data?.username || email.trim()} has been added to the project`,
-      );
+      setSuccess(`Invitation sent to ${email.trim()}`);
       setEmail("");
 
       setTimeout(() => {
@@ -42,7 +40,7 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
       setError(
         err?.data?.error?.message ||
           err?.data?.message ||
-          "Failed to add member",
+          "Failed to send invitation",
       );
     }
   };
@@ -70,8 +68,8 @@ const InviteMemberModal = ({ isOpen, onClose, projectId }) => {
         )}
 
         <p className="text-sm text-slate-400">
-          Enter the email address of the person you'd like to invite. They must
-          already have a TaskFlow account.
+          Enter the email address of the person you'd like to invite. If they
+          don't have an account, they'll be invited to sign up.
         </p>
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">

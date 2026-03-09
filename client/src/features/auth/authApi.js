@@ -18,6 +18,14 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
+    googleLogin: builder.mutation({
+      query: (body) => ({
+        url: "/auth/google",
+        method: "POST",
+        body,
+      }),
+    }),
+
     logout: builder.mutation({
       query: () => ({
         url: "/auth/logout",
@@ -85,6 +93,7 @@ export const authApi = baseApi.injectEndpoints({
 export const {
   useRegisterMutation,
   useLoginMutation,
+  useGoogleLoginMutation,
   useLogoutMutation,
   useGetMeQuery,
   useUpdateProfileMutation,

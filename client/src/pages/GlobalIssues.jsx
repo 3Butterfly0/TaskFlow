@@ -97,7 +97,7 @@ const GlobalIssues = () => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-slate-950">
+    <div className="flex flex-1 flex-col">
       <header className="border-b border-slate-800 bg-slate-900/50 p-4 md:p-8 shrink-0">
         <h1 className="text-2xl font-bold text-white tracking-tight">
           Global Issues

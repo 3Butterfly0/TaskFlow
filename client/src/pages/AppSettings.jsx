@@ -14,7 +14,7 @@ import {
 } from "../features/auth/authApi";
 import { baseApi } from "../app/baseApi";
 import { useNavigate } from "react-router-dom";
-import { User, Bell, Palette, Shield, LogOut } from "lucide-react";
+import { User, Bell, Palette, Shield, LogOut, Eye, EyeOff } from "lucide-react";
 import SettingsLayout from "../components/settings/SettingsLayout";
 import { toast } from "react-hot-toast";
 
@@ -48,6 +48,9 @@ const AppSettings = () => {
     confirm: "",
   });
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [mfaState, setMfaState] = useState({
     showModal: false,
     qrCode: "",
@@ -337,45 +340,84 @@ const AppSettings = () => {
                   <label className="text-xs font-medium text-slate-400">
                     Current Password
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={passwords.current}
-                    onChange={(e) =>
-                      setPasswords({ ...passwords, current: e.target.value })
-                    }
-                    className="w-full rounded bg-slate-900 border border-slate-700 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCurrentPw ? "text" : "password"}
+                      required
+                      value={passwords.current}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, current: e.target.value })
+                      }
+                      className="w-full rounded bg-slate-900 border border-slate-700 px-3 py-1.5 pr-8 text-sm text-white outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPw(!showCurrentPw)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                    >
+                      {showCurrentPw ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-400">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={passwords.new}
-                    onChange={(e) =>
-                      setPasswords({ ...passwords, new: e.target.value })
-                    }
-                    className="w-full rounded bg-slate-900 border border-slate-700 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPw ? "text" : "password"}
+                      required
+                      minLength={8}
+                      value={passwords.new}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, new: e.target.value })
+                      }
+                      className="w-full rounded bg-slate-900 border border-slate-700 px-3 py-1.5 pr-8 text-sm text-white outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPw(!showNewPw)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                    >
+                      {showNewPw ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-slate-400">
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={passwords.confirm}
-                    onChange={(e) =>
-                      setPasswords({ ...passwords, confirm: e.target.value })
-                    }
-                    className="w-full rounded bg-slate-900 border border-slate-700 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPw ? "text" : "password"}
+                      required
+                      minLength={8}
+                      value={passwords.confirm}
+                      onChange={(e) =>
+                        setPasswords({ ...passwords, confirm: e.target.value })
+                      }
+                      className="w-full rounded bg-slate-900 border border-slate-700 px-3 py-1.5 pr-8 text-sm text-white outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPw(!showConfirmPw)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                    >
+                      {showConfirmPw ? (
+                        <EyeOff className="size-4" />
+                      ) : (
+                        <Eye className="size-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 pt-2 text-sm">
                   <button

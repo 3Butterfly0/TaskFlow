@@ -53,7 +53,7 @@ const History = () => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-slate-950">
+    <div className="flex flex-1 flex-col">
       <div className="border-b border-slate-800 bg-slate-900/50 px-6 py-4">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="relative w-full sm:w-80">

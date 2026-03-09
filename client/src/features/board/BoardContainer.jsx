@@ -230,12 +230,21 @@ const BoardContainer = ({
         } catch {
           setOptimisticColumns(null);
         }
+      } else {
         // ── Cross-column move ──────────────────────
         const sourceColumnId = origin.sourceColumnId;
         const destinationColumnId = currentColumn.id;
 
-        // Build clean source taskIds (task removed)
-        const newSourceTaskIds = origin.sourceTaskIds.filter(
+        const optimisticSourceCol = currentCols.find(
+          (c) => c.id === sourceColumnId,
+        );
+
+        // Build clean source taskIds based on current optimistic state with fallback
+        const baseSourceTaskIds = optimisticSourceCol
+          ? optimisticSourceCol.taskIds || []
+          : origin.sourceTaskIds;
+
+        const newSourceTaskIds = baseSourceTaskIds.filter(
           (id) => String(id) !== String(activeId),
         );
 
@@ -248,6 +257,7 @@ const BoardContainer = ({
         const insertIdx = (currentColumn.taskIds || []).findIndex(
           (id) => String(id) === String(activeId),
         );
+
         if (insertIdx >= 0) {
           newDestTaskIds.splice(insertIdx, 0, activeId);
         } else {
@@ -256,21 +266,25 @@ const BoardContainer = ({
 
         if (sourceColumnId && destinationColumnId) {
           try {
-            await moveTask({
+            const payload = {
               projectId,
               taskId: activeId,
               sourceColumnId,
               destinationColumnId,
               newSourceTaskIds,
               newDestinationTaskIds: newDestTaskIds,
-            }).unwrap();
+            };
+            await moveTask(payload).unwrap();
           } catch (err) {
             console.error("Move Task Failed:", err, {
-              sourceColumnId,
-              destinationColumnId,
-              activeId,
-              newSourceTaskIds,
-              newDestTaskIds,
+              payload: {
+                projectId,
+                taskId: activeId,
+                sourceColumnId,
+                destinationColumnId,
+                newSourceTaskIds,
+                newDestinationTaskIds: newDestTaskIds,
+              },
             });
             setOptimisticColumns(null);
           }

@@ -568,17 +568,20 @@ export const moveAcrossColumns = async (req, res, next) => {
     } = req.body;
 
     // ── Validation ────────────────────────────────────
-    if (
-      !projectId ||
-      !taskId ||
-      !sourceColumnId ||
-      !destinationColumnId ||
-      !Array.isArray(newSourceTaskIds) ||
-      !Array.isArray(newDestinationTaskIds)
-    ) {
+    const missing = [];
+    if (!projectId) missing.push("projectId");
+    if (!taskId) missing.push("taskId");
+    if (!sourceColumnId) missing.push("sourceColumnId");
+    if (!destinationColumnId) missing.push("destinationColumnId");
+    if (!Array.isArray(newSourceTaskIds))
+      missing.push("newSourceTaskIds (array required)");
+    if (!Array.isArray(newDestinationTaskIds))
+      missing.push("newDestinationTaskIds (array required)");
+
+    if (missing.length > 0) {
       throw new ApiError(
         400,
-        "projectId, taskId, sourceColumnId, destinationColumnId, newSourceTaskIds, and newDestinationTaskIds are all required",
+        `Missing or invalid fields: ${missing.join(", ")}`,
       );
     }
 

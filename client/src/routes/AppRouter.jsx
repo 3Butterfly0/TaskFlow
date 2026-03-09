@@ -8,6 +8,8 @@ import Register from "../pages/Register";
 
 // ── Protected pages ──────────────────────────────────
 import Dashboard from "../pages/Dashboard";
+import PublicOrDashboard from "./PublicOrDashboard";
+import AcceptInvite from "../pages/AcceptInvite";
 import Board from "../pages/Board";
 import Tickets from "../pages/Tickets";
 import Settings from "../pages/Settings";
@@ -39,7 +41,19 @@ const AppRouter = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* ── Root Entry Point (Public Landing or Dashboard) ── */}
+        <Route path="/" element={<PublicOrDashboard />} />
+
         {/* ── Protected routes (inside AppLayout) ── */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <AcceptInvite />
+            </ProtectedRoute>
+          }
+          path="/accept-invite"
+        />
+
         <Route
           element={
             <ProtectedRoute>
@@ -47,7 +61,6 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
           <Route path="projects/:projectId" element={<ProjectLayout />}>
             <Route path="board" element={<Board />} />
             <Route path="calendar" element={<Calendar />} />

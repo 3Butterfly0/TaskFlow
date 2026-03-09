@@ -222,11 +222,13 @@ const Sidebar = () => {
 
         <nav className="flex-1 space-y-8 overflow-y-auto overflow-x-hidden p-3 custom-scrollbar">
           <div className="flex flex-col gap-4">
-            {!collapsed && (
-              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Main
-              </p>
-            )}
+            <p
+              className={`mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 transition-opacity ${
+                collapsed ? "invisible opacity-0 select-none" : "opacity-100"
+              }`}
+            >
+              Main
+            </p>
             {mainNav.map((item) => (
               <NavItem
                 key={item.to}

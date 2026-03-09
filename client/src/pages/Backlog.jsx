@@ -86,7 +86,7 @@ const Backlog = () => {
     );
 
   return (
-    <div className="flex flex-col h-full bg-slate-950">
+    <div className="flex flex-1 flex-col">
       <div className="flex-1 overflow-y-auto w-full custom-scrollbar">
         <div className="px-6 py-4 max-w-7xl mx-auto">
           <div>

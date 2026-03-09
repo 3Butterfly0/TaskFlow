@@ -4,7 +4,7 @@ const Analytics = () => {
   const { projectId } = useParams();
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <AnalyticsDashboard projectId={projectId} />
       </div>

@@ -82,7 +82,7 @@ const Calendar = () => {
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-950 overflow-y-auto custom-scrollbar px-6 py-4">
+    <div className="flex flex-1 flex-col overflow-y-auto custom-scrollbar px-6 py-4">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white tracking-tight">
           {currentDate.toLocaleString("default", {

@@ -4,6 +4,9 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import speakeasy from "speakeasy";
 import qrcode from "qrcode";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ── Helper: generate token & set HttpOnly cookie ──────
 const generateTokenAndSetCookie = (res, userId) => {
@@ -33,8 +36,15 @@ export const register = async (req, res, next) => {
       throw new ApiError(400, "Please provide username, email, and password");
     }
 
-    if (password.length < 6) {
-      throw new ApiError(400, "Password must be at least 6 characters");
+    if (password.length < 8) {
+      throw new ApiError(400, "Password must be at least 8 characters");
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      throw new ApiError(
+        400,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+      );
     }
 
     // ── Check for existing user ───────────────────────
@@ -87,7 +97,6 @@ export const login = async (req, res, next) => {
       throw new ApiError(401, "Invalid email or password");
     }
 
-// <<<<<<< HEAD
     if (user.mfaEnabled) {
       // Issue a short-lived temp token for MFA validation step
       const tempToken = jwt.sign(
@@ -108,9 +117,7 @@ export const login = async (req, res, next) => {
         );
     }
 
-// =======
     // ── Update lastSeen ───────────────────────────────
-// >>>>>>> parent of  f23d175 (comments cleaning)
     user.lastSeen = new Date();
     await user.save({ validateModifiedOnly: true });
 
@@ -206,8 +213,15 @@ export const changePassword = async (req, res, next) => {
       throw new ApiError(400, "Current and new passwords are required");
     }
 
-    if (newPassword.length < 6) {
-      throw new ApiError(400, "New password must be at least 6 characters");
+    if (newPassword.length < 8) {
+      throw new ApiError(400, "New password must be at least 8 characters");
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      throw new ApiError(
+        400,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+      );
     }
 
     const user = await User.findById(req.user.id).select("+password");
@@ -372,6 +386,82 @@ export const validateMfa = async (req, res, next) => {
       .status(200)
       .json(
         new ApiResponse(200, user.toSafeObject(), "Logged in successfully"),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// POST /api/auth/google
+// ──────────────────────────────────────────────────────
+export const googleLogin = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      throw new ApiError(400, "Google credential is required");
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload?.email) {
+      throw new ApiError(400, "Invalid Google payload");
+    }
+
+    const { email, name, sub: googleId, picture: avatar } = payload;
+    let user = await User.findOne({ email });
+
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.avatar = user.avatar || avatar;
+        user.save({ validateModifiedOnly: true });
+      }
+    } else {
+      const randomPassword = Math.random().toString(36).slice(-8) + "Aa1!";
+      user = await User.create({
+        username:
+          name.replace(/\s+/g, "").toLowerCase() +
+          Math.random().toString(36).substring(2, 6),
+        email,
+        password: randomPassword,
+        googleId,
+        avatar,
+        role: "member",
+      });
+    }
+
+    if (user.mfaEnabled) {
+      const tempToken = jwt.sign(
+        { id: user._id, mfaPending: true },
+        process.env.JWT_SECRET,
+        { expiresIn: "5m" },
+      );
+      return res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            { requiresMfa: true, tempToken },
+            "MFA required",
+          ),
+        );
+    }
+
+    user.lastSeen = new Date();
+    await user.save({ validateModifiedOnly: true });
+
+    generateTokenAndSetCookie(res, user._id);
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, user.toSafeObject(), "Google login successful"),
       );
   } catch (error) {
     next(error);

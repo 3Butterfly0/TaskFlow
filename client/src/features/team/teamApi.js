@@ -25,6 +25,26 @@ export const teamApi = baseApi.injectEndpoints({
       ],
     }),
 
+    inviteToProject: builder.mutation({
+      query: ({ projectId, email }) => ({
+        url: `/projects/${projectId}/invitations`,
+        method: "POST",
+        body: { email },
+      }),
+      invalidatesTags: [
+        { type: "Member", id: "LIST" },
+        { type: "Project", id: "LIST" },
+      ],
+    }),
+
+    acceptInvitation: builder.mutation({
+      query: (token) => ({
+        url: `/invitations/${token}/accept`,
+        method: "POST",
+      }),
+      invalidatesTags: [{ type: "Project", id: "LIST" }],
+    }),
+
     removeMember: builder.mutation({
       query: ({ projectId, memberId }) => ({
         url: `/projects/${projectId}/members/${memberId}`,
@@ -65,6 +85,8 @@ export const teamApi = baseApi.injectEndpoints({
 export const {
   useGetMembersQuery,
   useAddMemberMutation,
+  useInviteToProjectMutation,
+  useAcceptInvitationMutation,
   useRemoveMemberMutation,
   useTransferOwnershipMutation,
   useUpdateMemberRoleMutation,

@@ -10,6 +10,7 @@ import {
   verifyMfa,
   disableMfa,
   validateMfa,
+  googleLogin,
 } from "../controllers/auth.controller.js";
 import protect from "../middlewares/auth.middleware.js";
 
@@ -31,8 +32,7 @@ router.post("/mfa/setup", protect, setupMfa);
 router.post("/mfa/verify", protect, verifyMfa);
 router.post("/mfa/disable", protect, disableMfa);
 
-// TODO: Google OAuth routes (Phase 2+)
-// GET /api/auth/google
-// GET /api/auth/google/callback
+// Google OAuth route
+router.post("/google", googleLogin);
 
 export default router;

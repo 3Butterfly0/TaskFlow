@@ -100,8 +100,11 @@ export const taskApi = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (_result, _error, { projectId }) => [
+      invalidatesTags: (_result, _error, { projectId, taskId }) => [
         { type: "Project", id: projectId },
+        { type: "Task", id: taskId },
+        { type: "Task", id: "LIST" },
+        { type: "Task", id: "HISTORY_LIST" },
       ],
     }),
 
