@@ -82,7 +82,7 @@ const Calendar = () => {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto custom-scrollbar px-6 py-4">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden px-6 py-4">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white tracking-tight">
           {currentDate.toLocaleString("default", {
@@ -127,11 +127,13 @@ const Calendar = () => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 bg-slate-900 border border-slate-800 rounded-xl p-4 overflow-hidden calendar-wrapper custom-scrollbar">
+      <div className="flex-1 min-h-0 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden calendar-wrapper relative">
         <style
           dangerouslySetInnerHTML={{
             __html: `
           .fc {
+            height: 100%;
+            width: 100%;
             --fc-page-bg-color: transparent;
             --fc-neutral-bg-color: #0f172a;
             --fc-neutral-text-color: #cbd5e1;
@@ -146,52 +148,47 @@ const Calendar = () => {
             --fc-event-bg-color: #6366f1;
             --fc-event-border-color: #6366f1;
             --fc-event-text-color: #fff;
-            --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
-            --fc-more-link-bg-color: #1e293b;
-            --fc-more-link-text-color: #cbd5e1;
-            --fc-event-resizer-thickness: 8px;
-            --fc-event-resizer-dot-total-width: 8px;
-            --fc-event-resizer-dot-border-width: 1px;
-            --fc-non-business-color: rgba(215, 215, 215, 0.3);
-            --fc-bg-event-color: rgb(143, 223, 130);
-            --fc-bg-event-opacity: 0.3;
-            --fc-highlight-color: rgba(99, 102, 241, 0.1);
             --fc-today-bg-color: rgba(99, 102, 241, 0.05);
-            --fc-now-indicator-color: #ef4444;
             font-family: inherit;
           }
-          .fc-theme-standard .fc-scrollgrid { border-radius: 8px; overflow: hidden; border-color: #1e293b; }
-          .fc-theme-standard th { border-color: #1e293b; padding: 8px 0; background-color: #0f172a; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
-          .fc-theme-standard td { border-color: #1e293b; }
-          .fc-daygrid-day-number { color: #cbd5e1; font-size: 0.875rem; padding: 8px !important; }
-          .fc-daygrid-event { border-radius: 4px; padding: 2px 4px; font-size: 0.75rem; font-weight: 500; cursor: pointer; transition: opacity 0.2s; border: none !important; }
-          .fc-daygrid-event:hover { opacity: 0.9; }
-          .fc-daygrid-dot-event { border-radius: 4px; padding: 2px 4px; }
-          .fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 700; color: #f8fafc; display: none; }
-          .fc-button { text-transform: capitalize; border-radius: 6px !important; font-weight: 500 !important; font-size: 0.875rem !important; transition: all 0.2s; }
-          .fc-button-primary:not(:disabled).fc-button-active, .fc-button-primary:not(:disabled):active { box-shadow: none !important; }
-          .fc-button-primary:focus { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5) !important; }
+          .fc-theme-standard th { 
+            border: 1px solid #1e293b; 
+            padding: 8px 0; 
+            background-color: #0f172a; 
+            color: #94a3b8; 
+          }
+          .fc-theme-standard td { 
+            border: 1px solid #1e293b; 
+          }
+          .fc-daygrid-day-number { color: #cbd5e1; font-size: 0.875rem; padding: 7px !important; }
+          .fc .fc-toolbar-title { display: none; }
         `,
           }}
         />
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          events={events}
-          editable={true}
-          droppable={true}
-          datesSet={(dateInfo) => setCurrentDate(dateInfo.view.currentStart)}
-          eventDrop={handleEventDrop}
-          eventClick={handleEventClick}
-          headerToolbar={{
-            left: "",
-            center: "",
-            right: "today prev,next",
-          }}
-          height="100%"
-          dayMaxEvents={3}
-        />
+        <div className="absolute inset-4">
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            events={events}
+            editable={true}
+            droppable={true}
+            datesSet={() => {
+              if (calendarRef.current) {
+                setCurrentDate(calendarRef.current.getApi().getDate());
+              }
+            }}
+            eventDrop={handleEventDrop}
+            eventClick={handleEventClick}
+            headerToolbar={{
+              left: "",
+              center: "",
+              right: "today prev,next",
+            }}
+            height="100%"
+            dayMaxEvents={3}
+          />
+        </div>
       </div>
 
       <TaskDetails

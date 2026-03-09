@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   useRegisterMutation,
   useGoogleLoginMutation,
@@ -11,6 +11,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 
 const Register = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const [register, { isLoading }] = useRegisterMutation();
   const [googleLoginMutation, { isLoading: isGoogleLoading }] =
@@ -37,7 +38,10 @@ const Register = () => {
         }).unwrap();
         // Since Google might link immediately, but register form doesn't show MFA flow directly for newly created ones, handle just login success
         dispatch(setCredentials(res.data));
-        navigate("/", { replace: true });
+        const from =
+          location.state?.from?.pathname +
+            (location.state?.from?.search || "") || "/";
+        navigate(from, { replace: true });
       } catch (err) {
         setError(
           err?.data?.error?.message ||
@@ -97,7 +101,10 @@ const Register = () => {
 
       // Store user in Redux (cookie is set by backend automatically)
       dispatch(setCredentials(res.data));
-      navigate("/", { replace: true });
+      const from =
+        location.state?.from?.pathname + (location.state?.from?.search || "") ||
+        "/";
+      navigate(from, { replace: true });
     } catch (err) {
       setError(
         err?.data?.error?.message ||

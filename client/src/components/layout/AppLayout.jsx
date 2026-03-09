@@ -19,7 +19,7 @@ import Header from "./Header";
  *
  * The <Outlet /> renders the matched child route.
  */
-const AppLayout = () => {
+const AppLayout = ({ children }) => {
   const { projectId } = useParams();
   const location = useLocation();
   const { socket } = useSocket();
@@ -42,7 +42,7 @@ const AppLayout = () => {
   }, [socket, projectId]);
 
   return (
-    <div className="flex h-screen bg-slate-900 text-slate-100">
+    <div className="flex h-screen bg-slate-950 text-slate-100">
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -56,9 +56,9 @@ const AppLayout = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="min-h-full w-full"
+              className="h-full w-full flex flex-col"
             >
-              <Outlet />
+              {children || <Outlet />}
             </motion.div>
           </AnimatePresence>
         </main>

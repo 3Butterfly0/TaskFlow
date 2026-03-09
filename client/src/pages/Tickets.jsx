@@ -185,7 +185,7 @@ const Tickets = () => {
   const [promoteTicket, setPromoteTicket] = useState(null);
 
   return (
-    <div className="flex h-full flex-col w-full px-6 py-4 overflow-y-auto custom-scrollbar">
+    <div className="flex flex-1 flex-col w-full px-6 py-4 overflow-y-auto custom-scrollbar">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <button
           onClick={() => setShowRaiseModal(true)}

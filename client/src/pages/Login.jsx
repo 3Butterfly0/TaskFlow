@@ -298,6 +298,7 @@ const Login = () => {
             Don&apos;t have an account?{" "}
             <Link
               to="/register"
+              state={{ from: location.state?.from }}
               className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               Create one
