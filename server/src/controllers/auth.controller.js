@@ -17,7 +17,7 @@ const generateTokenAndSetCookie = (res, userId) => {
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
@@ -142,7 +142,7 @@ export const logout = async (_req, res, next) => {
     res.cookie("token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 0, // Expire immediately
     });
 
@@ -420,7 +420,7 @@ export const googleLogin = async (req, res, next) => {
       if (!user.googleId) {
         user.googleId = googleId;
         user.avatar = user.avatar || avatar;
-        user.save({ validateModifiedOnly: true });
+        await user.save({ validateModifiedOnly: true });
       }
     } else {
       const randomPassword = Math.random().toString(36).slice(-8) + "Aa1!";

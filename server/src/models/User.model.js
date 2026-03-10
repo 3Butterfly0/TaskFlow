@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       minlength: [6, "Password must be at least 6 characters"],
       select: false, // Never return password by default
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Password is required",
+      ],
     },
 
     googleId: {
@@ -119,6 +125,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.mfaSecret;
   delete obj.__v;
   return obj;
 };

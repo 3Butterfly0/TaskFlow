@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Ticket from "../models/Ticket.model.js";
 import Task from "../models/Task.model.js";
 import Project from "../models/Project.model.js";
@@ -105,6 +106,9 @@ export const getTickets = async (req, res, next) => {
 // Body: { projectId, columnId } — which column to place the new task in
 // ──────────────────────────────────────────────────────
 export const promoteToTask = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const { projectId, columnId } = req.body;
@@ -116,7 +120,7 @@ export const promoteToTask = async (req, res, next) => {
     }
 
     // ── Find ticket ───────────────────────────────────
-    const ticket = await Ticket.findById(id);
+    const ticket = await Ticket.findById(id).session(session);
     if (!ticket) {
       throw new ApiError(404, "Ticket not found");
     }
@@ -133,7 +137,7 @@ export const promoteToTask = async (req, res, next) => {
     }
 
     // ── Find project and verify access ────────────────
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(projectId).session(session);
     if (!project) {
       throw new ApiError(404, "Project not found");
     }
@@ -158,38 +162,47 @@ export const promoteToTask = async (req, res, next) => {
     };
 
     // Step 1: Create a Task from ticket data
-    const task = await Task.create({
-      title: ticket.subject,
-      content: ticket.description,
-      priority: severityToPriority[ticket.severity] || "medium",
-      projectId,
-      columnId,
-      assignees: [],
-      isInBacklog: !!req.body.isInBacklog,
-      activityLog: [
+    const [task] = await Task.create(
+      [
         {
-          type: "task_created",
-          actorId: userId,
-          metadata: {
-            source: "ticket",
-            ticketId: ticket._id.toString(),
-            columnTitle: column.title,
-          },
+          title: ticket.subject,
+          content: ticket.description,
+          priority: severityToPriority[ticket.severity] || "medium",
+          projectId,
+          columnId,
+          assignees: [],
+          isInBacklog: !!req.body.isInBacklog,
+          activityLog: [
+            {
+              type: "task_created",
+              actorId: userId,
+              metadata: {
+                source: "ticket",
+                ticketId: ticket._id.toString(),
+                columnTitle: column.title,
+              },
+            },
+          ],
         },
       ],
-    });
+      { session },
+    );
 
     // Step 2: Append task ID to column (ONLY if not backlog)
     if (!req.body.isInBacklog) {
       column.taskIds.push(task._id.toString());
-      await project.save();
+      await project.save({ session });
     }
 
     // Step 3: Link ticket to task and update status
     ticket.linkedTaskId = task._id;
     ticket.status = "in_progress";
     ticket.triagedBy = userId;
-    await ticket.save();
+    await ticket.save({ session });
+
+    // Commit transaction
+    await session.commitTransaction();
+    session.endSession();
 
     // Populate for response
     await ticket.populate([
@@ -211,6 +224,8 @@ export const promoteToTask = async (req, res, next) => {
         ),
       );
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     next(error);
   }
 };

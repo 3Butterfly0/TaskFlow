@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 import logger from "../utils/logger.js";
 
 /**
@@ -71,13 +72,34 @@ export const initializeSocket = (httpServer) => {
     pingTimeout: 60000,
   });
 
+  // ── Middleware: Verify JWT before accepting connection ──
+  io.use((socket, next) => {
+    try {
+      const cookieString = socket.handshake.headers.cookie;
+      const match = cookieString?.match(/(?:^|;)\s*token\s*=\s*([^;]+)/);
+      const token = match ? match[1] : socket.handshake.auth?.token;
+
+      if (!token) {
+        return next(new Error("Authentication error: No token provided"));
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Attach verified userId to socket
+      socket.userId = decoded.id;
+      next();
+    } catch (err) {
+      next(new Error("Authentication error: Invalid token"));
+    }
+  });
+
   io.on("connection", (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
 
     // ── Authenticate / identify user ──────────────────
-    // Client sends: socket.emit("setup", userId)
-    socket.on("setup", (userId) => {
-      socket.userId = userId;
+    // The socket is already authenticated via JWT.
+    // We just handle the "setup" event to officially track presence.
+    socket.on("setup", () => {
+      const userId = socket.userId;
 
       socket.join(userId);
 
