@@ -208,8 +208,7 @@ export const updateLastAccessed = async (req, res, next) => {
 
     await User.findByIdAndUpdate(userId, {
       $pull: { lastAccessedProjects: { projectId: id } },
-    }); 
-
+    });
 
     await User.findByIdAndUpdate(userId, {
       $push: {
@@ -242,6 +241,17 @@ export const addColumn = async (req, res, next) => {
     const project = await Project.findById(id);
     if (!project) throw new ApiError(404, "Project not found");
 
+    // Require owner or admin to add column
+    const isOwner = project.owner.toString() === req.user.id;
+    const isMember = project.members.some((m) => m.toString() === req.user.id);
+    const userRole =
+      project.roles?.find((r) => r.userId.toString() === req.user.id)?.role ||
+      (isOwner ? "admin" : isMember ? "member" : null);
+
+    if (userRole !== "admin") {
+      throw new ApiError(403, "Only admins/owners can manage columns");
+    }
+
     // Add new column
     project.columns.push({ title, taskIds: [] });
     await project.save();
@@ -252,6 +262,101 @@ export const addColumn = async (req, res, next) => {
     res
       .status(201)
       .json(new ApiResponse(201, newColumn, "Column added successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// PATCH /api/projects/:id/columns/:columnId
+// Rename an existing column
+// ──────────────────────────────────────────────────────
+export const renameColumn = async (req, res, next) => {
+  try {
+    const { id, columnId } = req.params;
+    const { title } = req.body;
+
+    if (!title || !title.trim()) {
+      throw new ApiError(400, "New column title is required");
+    }
+
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    const isOwner = project.owner.toString() === req.user.id;
+    const isMember = project.members.some((m) => m.toString() === req.user.id);
+    const userRole =
+      project.roles?.find((r) => r.userId.toString() === req.user.id)?.role ||
+      (isOwner ? "admin" : isMember ? "member" : null);
+
+    if (userRole !== "admin") {
+      throw new ApiError(403, "Only admins/owners can manage columns");
+    }
+
+    const column = project.columns.find((col) => col.id === columnId);
+    if (!column) {
+      throw new ApiError(404, "Column not found");
+    }
+
+    column.title = title.trim();
+    await project.save();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, column, "Column renamed successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────
+// DELETE /api/projects/:id/columns/:columnId
+// Delete a column (only if empty)
+// ──────────────────────────────────────────────────────
+export const deleteColumn = async (req, res, next) => {
+  try {
+    const { id, columnId } = req.params;
+
+    const project = await Project.findById(id);
+    if (!project) throw new ApiError(404, "Project not found");
+
+    const isOwner = project.owner.toString() === req.user.id;
+    const isMember = project.members.some((m) => m.toString() === req.user.id);
+    const userRole =
+      project.roles?.find((r) => r.userId.toString() === req.user.id)?.role ||
+      (isOwner ? "admin" : isMember ? "member" : null);
+
+    if (userRole !== "admin") {
+      throw new ApiError(403, "Only admins/owners can manage columns");
+    }
+
+    const columnIndex = project.columns.findIndex((col) => col.id === columnId);
+    if (columnIndex === -1) {
+      throw new ApiError(404, "Column not found");
+    }
+
+    // Default protections
+    if (columnIndex < 3) {
+      throw new ApiError(
+        400,
+        "Cannot delete the default base columns (Todo, In Progress, Done).",
+      );
+    }
+
+    const column = project.columns[columnIndex];
+    if (column.taskIds && column.taskIds.length > 0) {
+      throw new ApiError(
+        400,
+        "Cannot delete a column that contains tasks. Move tasks first.",
+      );
+    }
+
+    project.columns.splice(columnIndex, 1);
+    await project.save();
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, "Column deleted successfully"));
   } catch (error) {
     next(error);
   }

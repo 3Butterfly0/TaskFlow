@@ -67,6 +67,27 @@ export const projectApi = baseApi.injectEndpoints({
       ],
     }),
 
+    renameColumn: builder.mutation({
+      query: ({ projectId, columnId, title }) => ({
+        url: `/projects/${projectId}/columns/${columnId}`,
+        method: "PATCH",
+        body: { title },
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "Project", id: projectId },
+      ],
+    }),
+
+    deleteColumn: builder.mutation({
+      query: ({ projectId, columnId }) => ({
+        url: `/projects/${projectId}/columns/${columnId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "Project", id: projectId },
+      ],
+    }),
+
     updateProject: builder.mutation({
       query: ({ id, ...body }) => ({
         url: `/projects/${id}`,
@@ -99,6 +120,8 @@ export const {
   useUpdateLastAccessedMutation,
   useGetProjectMembersQuery,
   useAddColumnMutation,
+  useRenameColumnMutation,
+  useDeleteColumnMutation,
   useUpdateProjectMutation,
   useTransferOwnershipMutation,
 } = projectApi;

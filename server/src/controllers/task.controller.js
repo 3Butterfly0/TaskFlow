@@ -37,8 +37,20 @@ export const getTasksByProject = async (req, res, next) => {
 
     // ── Fetch tasks ────────────────────────────────────
     const query = { projectId };
+
+    // If specific statuses requested (e.g. History page requests "completed,cancelled,rejected")
     if (req.query.status) {
       query.status = { $in: req.query.status.split(",") };
+    } else {
+      // Board view (no status filter): Hide completed tasks older than 7 days
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      query.$or = [
+        { status: { $ne: "completed" } },
+        { status: "completed", completedAt: { $gte: oneWeekAgo } },
+        // Fallback: If status is completed but completedAt is mysteriously null, hide or show?
+        // We will show them by fallback rule just to not lose them immediately if they were corrupted.
+        { status: "completed", completedAt: null },
+      ];
     }
 
     const tasks = await Task.find(query)
@@ -633,22 +645,14 @@ export const moveAcrossColumns = async (req, res, next) => {
     const destTitle = destColumn.title.toLowerCase();
 
     // Map column titles to status enums
+    // Allowed task statuses: "active", "completed", "cancelled", "rejected"
     let newStatus = task.status;
     if (destTitle.includes("done") || destTitle.includes("complete")) {
       newStatus = "completed";
       task.completedAt = Date.now();
-    } else if (destTitle.includes("progress") || destTitle.includes("doing")) {
-      newStatus = "in_progress";
-      task.completedAt = null;
-    } else if (
-      destTitle.includes("todo") ||
-      destTitle.includes("to do") ||
-      destTitle.includes("backlog")
-    ) {
-      newStatus = "todo";
-      task.completedAt = null;
+      task.cancelledAt = null;
+      task.rejectedAt = null;
     } else {
-      // Default to active for other column types
       newStatus = "active";
       task.completedAt = null;
     }

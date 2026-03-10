@@ -238,41 +238,22 @@ const BoardContainer = ({
         const optimisticSourceCol = currentCols.find(
           (c) => c.id === sourceColumnId,
         );
+        const optimisticDestCol = currentColumn;
 
-        // Build clean source taskIds based on current optimistic state with fallback
-        const baseSourceTaskIds = optimisticSourceCol
-          ? optimisticSourceCol.taskIds || []
-          : origin.sourceTaskIds;
-
-        const newSourceTaskIds = baseSourceTaskIds.filter(
-          (id) => String(id) !== String(activeId),
-        );
-
-        // Build clean destination taskIds (ensure no duplicates)
-        const newDestTaskIds = [...(currentColumn.taskIds || [])].filter(
-          (id) => String(id) !== String(activeId),
-        );
-
-        // Re-insert at correct position (which is where activeId is sitting right now)
-        const insertIdx = (currentColumn.taskIds || []).findIndex(
-          (id) => String(id) === String(activeId),
-        );
-
-        if (insertIdx >= 0) {
-          newDestTaskIds.splice(insertIdx, 0, activeId);
-        } else {
-          newDestTaskIds.push(activeId);
-        }
-
-        if (sourceColumnId && destinationColumnId) {
+        if (
+          sourceColumnId &&
+          destinationColumnId &&
+          optimisticSourceCol &&
+          optimisticDestCol
+        ) {
           try {
             const payload = {
               projectId,
               taskId: activeId,
               sourceColumnId,
               destinationColumnId,
-              newSourceTaskIds,
-              newDestinationTaskIds: newDestTaskIds,
+              newSourceTaskIds: [...optimisticSourceCol.taskIds],
+              newDestinationTaskIds: [...optimisticDestCol.taskIds],
             };
             await moveTask(payload).unwrap();
           } catch (err) {
@@ -282,8 +263,8 @@ const BoardContainer = ({
                 taskId: activeId,
                 sourceColumnId,
                 destinationColumnId,
-                newSourceTaskIds,
-                newDestinationTaskIds: newDestTaskIds,
+                newSourceTaskIds: [...optimisticSourceCol.taskIds],
+                newDestinationTaskIds: [...optimisticDestCol.taskIds],
               },
             });
             setOptimisticColumns(null);
@@ -304,11 +285,13 @@ const BoardContainer = ({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {columns.map((column) => (
+      <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar min-h-full">
+        {columns.map((column, index) => (
           <BoardColumn
             key={column.id}
             column={column}
+            columnIndex={index}
+            projectId={projectId}
             taskMap={taskMap}
             onOpen={onOpenTask}
             isDoneColumn={column.title === "Done"}
