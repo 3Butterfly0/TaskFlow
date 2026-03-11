@@ -195,7 +195,6 @@ export const addComment = async (req, res, next) => {
       projectId: task.projectId,
       taskId: id,
       comment: newComment,
-      comment: newComment,
     });
 
     // ── Notify Assignees (excluding self) ──────────────
@@ -207,7 +206,7 @@ export const addComment = async (req, res, next) => {
         recipient: assigneeId,
         sender: userId,
         type: "comment",
-        resourceId: taskId,
+        resourceId: id,
         resourceType: "Task",
         message: `New comment on task: ${task.title}`,
       });
@@ -296,7 +295,6 @@ export const createTask = async (req, res, next) => {
 
     // ── Emit socket event (after DB success) ──────────
     emitToProject(projectId, "task.created", {
-      task,
       task,
       columnId,
     });
@@ -529,6 +527,15 @@ export const reorderInsideColumn = async (req, res, next) => {
     }
 
     // ── Update column taskIds (new order from client) ──
+    const currentTaskIds = new Set(column.taskIds);
+    const newTaskIds = new Set(taskIds);
+    if (
+      currentTaskIds.size !== newTaskIds.size ||
+      [...currentTaskIds].some((currId) => !newTaskIds.has(currId))
+    ) {
+      throw new ApiError(400, "Invalid task reorder array payload");
+    }
+
     column.taskIds = taskIds;
     await project.save();
 

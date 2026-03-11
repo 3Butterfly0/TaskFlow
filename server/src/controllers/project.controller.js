@@ -1,7 +1,9 @@
 import Project from "../models/Project.model.js";
-
 import Task from "../models/Task.model.js";
 import User from "../models/User.model.js";
+import Ticket from "../models/Ticket.model.js";
+import Invitation from "../models/Invitation.model.js";
+import Notification from "../models/Notification.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 
@@ -109,9 +111,14 @@ export const getProjectMembers = async (req, res, next) => {
     );
     if (!project) throw new ApiError(404, "Project not found");
 
-    // Check access?
-    // Assuming if you know the ID you can see members or stick to member check
-    // Logic: members can see other members
+    const userId = req.user.id;
+    const isOwner = project.owner.toString() === userId;
+    // Members are populated, so their _id is an object
+    const isMember = project.members.some((m) => m._id.toString() === userId);
+
+    if (!isOwner && !isMember) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
 
     res
       .status(200)
@@ -143,8 +150,11 @@ export const deleteProject = async (req, res, next) => {
       throw new ApiError(403, "Only the project owner can delete this project");
     }
 
-    // ── Cascade delete tasks ──────────────────────────
+    // ── Cascade delete tasks and related records ──────
     await Task.deleteMany({ projectId: id });
+    await Ticket.deleteMany({ projectId: id });
+    await Invitation.deleteMany({ projectId: id });
+    await Notification.deleteMany({ resourceId: id, resourceType: "Project" });
 
     // ── Delete project ────────────────────────────────
     await Project.findByIdAndDelete(id);
