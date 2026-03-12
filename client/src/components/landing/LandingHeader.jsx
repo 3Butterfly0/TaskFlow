@@ -14,12 +14,12 @@ const LandingHeader = ({ visible = true }) => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-700 ${
+      className={`fixed top-0 left-0 right-0 z-40 py-4 transition-[background-color,border-color,box-shadow,backdrop-filter,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
       } ${
         scrolled
-          ? "bg-yellow-50/80 backdrop-blur-md border-b border-red-100 py-3 shadow-sm"
-          : "bg-transparent py-5"
+          ? "bg-yellow-50/90 backdrop-blur-lg border-b border-red-100/60 shadow-md shadow-red-900/5"
+          : "bg-transparent border-b border-transparent shadow-none"
       }`}
     >
       <div className="container mx-auto px-6 max-w-7xl flex items-center justify-between">

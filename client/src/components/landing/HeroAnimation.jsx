@@ -74,8 +74,8 @@ const HeroAnimation = ({ onHeaderReveal, onContentReveal, onComplete }) => {
             <h1 className="flex items-baseline text-6xl md:text-8xl font-bold tracking-tight text-red-600 drop-shadow-sm select-none">
               {/* T */}
               <motion.span
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 18, filter: "blur(4px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ duration: TF_DURATION, ease: SMOOTH }}
                 className="inline-block"
               >
@@ -95,9 +95,9 @@ const HeroAnimation = ({ onHeaderReveal, onContentReveal, onComplete }) => {
 
               {/* F */}
               <motion.span
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: TF_DURATION, ease: SMOOTH, delay: 0.1 }}
+                initial={{ opacity: 0, y: 18, filter: "blur(4px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ duration: TF_DURATION, ease: SMOOTH, delay: 0.12 }}
                 className="inline-block"
               >
                 F

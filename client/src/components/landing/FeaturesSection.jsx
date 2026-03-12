@@ -45,10 +45,8 @@ const reasons = [
 
 const FeaturesSection = () => {
   return (
-    <section className="py-24 bg-white">
+    <section className="py-15 bg-white">
       <div className="container mx-auto px-6 max-w-7xl">
-        
-        {/* Visual Highlights Section */}
         <div className="mb-32">
           <div className="max-w-3xl mb-16">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-red-950 mb-6 leading-tight">
@@ -116,8 +114,7 @@ const FeaturesSection = () => {
         
       </div>
 
-      {/* CTA Banner Section (Merged into Features) */}
-      <div className="py-24 bg-linear-to-br from-red-600 to-red-800 text-center relative overflow-hidden mt-16 rounded-t-[3rem] shadow-2xl">
+      <div className="py-20 bg-linear-to-br from-red-600 to-red-800 text-center relative overflow-hidden mt-16 mx-auto rounded-3xl shadow-2xl max-w-5xl">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-200 h-100 bg-red-500/50 rounded-full blur-3xl opacity-50 mix-blend-screen pointer-events-none"></div>
 
         <div className="container mx-auto px-6 max-w-4xl relative z-10">
