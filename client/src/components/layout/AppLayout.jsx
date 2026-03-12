@@ -48,7 +48,7 @@ const AppLayout = ({ children }) => {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
 
-        <main className="flex-1 overflow-y-auto w-full relative">
+        <main className="flex-1 flex flex-col min-h-0 w-full relative">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -56,7 +56,7 @@ const AppLayout = ({ children }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="h-full w-full flex flex-col"
+              className="flex-1 flex flex-col min-h-0 w-full"
             >
               {children || <Outlet />}
             </motion.div>

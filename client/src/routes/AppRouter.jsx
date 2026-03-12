@@ -21,6 +21,7 @@ import AppSettings from "../pages/AppSettings";
 import GlobalIssues from "../pages/GlobalIssues";
 import Analytics from "../pages/Analytics";
 import ProjectLayout from "../components/layout/ProjectLayout";
+import NotFound from "../pages/NotFound";
 
 /**
  * Application router.
@@ -73,7 +74,11 @@ const AppRouter = () => {
           </Route>
           <Route path="settings" element={<AppSettings />} />
           <Route path="issues" element={<GlobalIssues />} />
+          <Route path="dashboard" element={<Dashboard />} />
         </Route>
+
+        {/* ── 404 Catch-All ── */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

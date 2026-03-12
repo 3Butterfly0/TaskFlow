@@ -2,7 +2,7 @@ import Project from "../models/Project.model.js";
 import Task from "../models/Task.model.js";
 import User from "../models/User.model.js";
 import Ticket from "../models/Ticket.model.js";
-import Invitation from "../models/Invitation.model.js";
+import { Invitation } from "../models/Invitation.model.js";
 import Notification from "../models/Notification.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
