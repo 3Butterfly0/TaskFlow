@@ -15,8 +15,7 @@ const FileUploader = ({ onUpload, disabled }) => {
         if (response.data) {
           onUpload(response.data);
         }
-      } catch (err) {
-        console.error("Upload failed", err);
+      } catch {
         // Error is handled by global error handler usually, but show local error if needed?
         // For now, console error.
       }

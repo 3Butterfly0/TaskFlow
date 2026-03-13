@@ -59,8 +59,8 @@ const NotificationBell = () => {
     try {
       await markAsRead(id).unwrap();
       setIsOpen(false);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // Error handled by redux
     }
   };
 

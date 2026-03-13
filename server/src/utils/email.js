@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { logger } from "../utils/logger.js";
 
 // Setup transporter for ethereal email for development purposes, assuming real SMTP info not present yet.
 // Usually we'd configure this with host, port, user, pass from env.
@@ -30,7 +31,7 @@ const createTransporter = async () => {
         pass: testAccount.pass, // generated ethereal password
       },
     });
-    console.log("No SMTP settings in .env. Falling back to Ethereal Mail...");
+    logger.info("No SMTP settings in .env. Falling back to Ethereal Mail...");
   }
   return transporter;
 };
@@ -46,16 +47,16 @@ export const sendEmail = async ({ to, subject, html }) => {
       html,
     });
 
-    console.log("Message sent: %s", info.messageId);
+    logger.info(`Message sent: ${info.messageId}`);
 
     // Preview URL available only when using Ethereal account
     if (info.messageId && nodemailer.getTestMessageUrl(info)) {
-      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+      logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     }
 
     return info;
   } catch (error) {
-    console.error("Error sending email:", error);
+    logger.error("Error sending email:", error);
     throw error;
   }
 };

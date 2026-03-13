@@ -53,19 +53,17 @@ export const SocketProvider = ({ children }) => {
 
     // Connection events
     newSocket.on("connect", () => {
-      console.log("Socket connected:", newSocket.id);
       setIsConnected(true);
       // Authenticate
       newSocket.emit("setup");
     });
 
     newSocket.on("disconnect", () => {
-      console.log("Socket disconnected");
       setIsConnected(false);
     });
 
     newSocket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err);
+      // Handle connection error quietly or display notification
     });
 
     // Global Presence Listener

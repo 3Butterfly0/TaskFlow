@@ -234,8 +234,8 @@ const Team = () => {
         memberId,
         role: newRole,
       }).unwrap();
-    } catch (err) {
-      console.error("Failed to update role", err);
+    } catch {
+      // Failure handled by UI state or global boundary
     }
   };
 

@@ -48,8 +48,8 @@ const BoardContainer = ({
       await addColumn({ projectId, title: newColumnTitle.trim() }).unwrap();
       setNewColumnTitle("");
       setIsAddingColumn(false);
-    } catch (err) {
-      console.error("Failed to add column", err);
+    } catch {
+      // Global error handler takes care of this
     }
   };
 
@@ -256,17 +256,8 @@ const BoardContainer = ({
               newDestinationTaskIds: [...optimisticDestCol.taskIds],
             };
             await moveTask(payload).unwrap();
-          } catch (err) {
-            console.error("Move Task Failed:", err, {
-              payload: {
-                projectId,
-                taskId: activeId,
-                sourceColumnId,
-                destinationColumnId,
-                newSourceTaskIds: [...optimisticSourceCol.taskIds],
-                newDestinationTaskIds: [...optimisticDestCol.taskIds],
-              },
-            });
+          } catch {
+            // Revert state on failure
             setOptimisticColumns(null);
           }
         } else {

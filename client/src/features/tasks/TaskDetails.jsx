@@ -87,8 +87,8 @@ const TaskDetails = ({
     if (!task) return;
     try {
       await updateTask({ id: task._id, ...updates }).unwrap();
-    } catch (err) {
-      console.error("Failed to update task", err);
+    } catch {
+      // Failed to update handled globally
     }
   };
 
@@ -97,8 +97,8 @@ const TaskDetails = ({
     try {
       await addComment({ taskId: task._id, text: commentText }).unwrap();
       setCommentText("");
-    } catch (err) {
-      console.error("Failed to add comment", err);
+    } catch {
+      // Handled globally
     }
   };
 
@@ -324,11 +324,8 @@ const TaskDetails = ({
                                         newDestinationTaskIds: newDestTaskIds,
                                       }).unwrap();
                                     }
-                                  } catch (err) {
-                                    console.error(
-                                      "Failed to auto-move task to Done",
-                                      err,
-                                    );
+                                  } catch {
+                                    // Auto-move failed, ignore silently or let global error catch handle it
                                   }
                                 }
                               }

@@ -69,8 +69,8 @@ const Backlog = () => {
       }).unwrap();
       setNewTaskTitle("");
       setIsCreateModalOpen(false);
-    } catch (err) {
-      console.error("Failed to create task", err);
+    } catch {
+      // Request error boundary fallback
     }
   };
 

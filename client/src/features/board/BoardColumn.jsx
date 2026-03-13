@@ -107,8 +107,8 @@ const BoardColumn = ({
     ) {
       try {
         await deleteColumnReq({ projectId, columnId: column.id }).unwrap();
-      } catch (err) {
-        console.error("Failed to delete column", err);
+      } catch {
+        // Fallback or toast notification handles failure
       }
     }
     setIsMenuOpen(false);

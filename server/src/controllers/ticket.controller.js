@@ -202,7 +202,6 @@ export const promoteToTask = async (req, res, next) => {
 
     // Commit transaction
     await session.commitTransaction();
-    session.endSession();
 
     // Populate for response
     await ticket.populate([
@@ -225,7 +224,8 @@ export const promoteToTask = async (req, res, next) => {
       );
   } catch (error) {
     await session.abortTransaction();
-    session.endSession();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
