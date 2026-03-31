@@ -41,7 +41,15 @@ const Header = () => {
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-end border-b border-slate-800 bg-slate-950 px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-950 px-6">
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-1 bg-indigo-500 rounded-full" />
+        <span className="text-sm font-medium text-slate-300">TaskFlow</span>
+        <span className="text-slate-600">/</span>
+        <span className="text-sm font-bold text-white tracking-tight capitalize">
+          {window.location.pathname.split("/").pop() || "Dashboard"}
+        </span>
+      </div>
       <div className="flex items-center gap-4">
         {user ? (
           <>

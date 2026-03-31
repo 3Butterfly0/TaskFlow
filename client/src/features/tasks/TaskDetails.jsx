@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import ReactQuill from "react-quill";
-// import "react-quill/dist/quill.snow.css";
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 import {
   useGetTaskByIdQuery,
   useUpdateTaskMutation,
@@ -102,11 +103,29 @@ const TaskDetails = ({
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      await deleteTask(task._id).unwrap();
-      onClose();
-    }
+  const handleDelete = () => {
+    confirmAlert({
+      customUI: ({ onClose }) => {
+        return (
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl max-w-sm w-full mx-4">
+            <h1 className="text-xl font-bold text-white mb-2">Delete Task</h1>
+            <p className="text-sm text-slate-400 mb-6">Are you sure you want to delete this task?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+              <button 
+                onClick={async () => {
+                  await deleteTask(task._id).unwrap();
+                  onClose();
+                }} 
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/20"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        );
+      }
+    });
   };
 
   if (!isOpen) return null;
@@ -295,39 +314,44 @@ const TaskDetails = ({
                               );
                               // Ensure it's not already in the Done column
                               if (doneCol && task.columnId !== doneCol.id) {
-                                if (
-                                  window.confirm(
-                                    "All subtasks are complete. Move task to Done?",
-                                  )
-                                ) {
-                                  try {
-                                    // source column is task.columnId
-                                    const sourceCol = projectColumns.find(
-                                      (c) => c.id === task.columnId,
+                                confirmAlert({
+                                  customUI: ({ onClose }) => {
+                                    return (
+                                      <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl max-w-sm w-full mx-4">
+                                        <h1 className="text-xl font-bold text-white mb-2">All Subtasks Complete</h1>
+                                        <p className="text-sm text-slate-400 mb-6">Move task to Done?</p>
+                                        <div className="flex justify-end gap-3">
+                                          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+                                          <button 
+                                            onClick={async () => {
+                                              try {
+                                                const sourceCol = projectColumns.find((c) => c.id === task.columnId);
+                                                if (sourceCol) {
+                                                  const newSourceTaskIds = sourceCol.taskIds.filter((id) => id !== task._id);
+                                                  const newDestTaskIds = [...doneCol.taskIds, task._id];
+                                                  await moveTask({
+                                                    projectId: task.projectId,
+                                                    taskId: task._id,
+                                                    sourceColumnId: sourceCol.id,
+                                                    destinationColumnId: doneCol.id,
+                                                    newSourceTaskIds,
+                                                    newDestinationTaskIds: newDestTaskIds,
+                                                  }).unwrap();
+                                                }
+                                              } catch {
+                                                // Error ignored
+                                              }
+                                              onClose();
+                                            }} 
+                                            className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20"
+                                          >
+                                            Yes, Move
+                                          </button>
+                                        </div>
+                                      </div>
                                     );
-                                    if (sourceCol) {
-                                      const newSourceTaskIds =
-                                        sourceCol.taskIds.filter(
-                                          (id) => id !== task._id,
-                                        );
-                                      const newDestTaskIds = [
-                                        ...doneCol.taskIds,
-                                        task._id,
-                                      ];
-
-                                      await moveTask({
-                                        projectId: task.projectId,
-                                        taskId: task._id,
-                                        sourceColumnId: sourceCol.id,
-                                        destinationColumnId: doneCol.id,
-                                        newSourceTaskIds,
-                                        newDestinationTaskIds: newDestTaskIds,
-                                      }).unwrap();
-                                    }
-                                  } catch {
-                                    // Auto-move failed, ignore silently or let global error catch handle it
                                   }
-                                }
+                                });
                               }
                             }
                           }}

@@ -47,6 +47,9 @@ importers:
       react-cmdk:
         specifier: ^1.3.9
         version: 1.3.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react-confirm-alert:
+        specifier: ^3.0.6
+        version: 3.0.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react-dom:
         specifier: ^19.2.0
         version: 19.2.4(react@19.2.4)
@@ -1600,6 +1603,12 @@ packages:
     peerDependencies:
       react: ^16.x || ^17.x || ^18.x
       react-dom: ^16.x || ^17.x || ^18.x
+
+  react-confirm-alert@3.0.6:
+    resolution: {integrity: sha512-rplP6Ed9ZSNd0KFV5BUzk4EPQ77BxsrayllBXGFuA8xPXc7sbBjgU5KUrNpl7aWFmP7mXRlVXfuy1IT5DbffYw==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=10.0.0'
 
   react-dom@19.2.4:
     resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
@@ -3250,6 +3259,11 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
+
+  react-confirm-alert@3.0.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   react-dom@19.2.4(react@19.2.4):
     dependencies:

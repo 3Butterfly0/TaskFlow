@@ -82,15 +82,12 @@ const Dashboard = () => {
   const projects = data?.data || [];
 
   return (
-    <div className="p-6 h-full overflow-y-auto custom-scrollbar">
+    <div className="flex flex-1 flex-col h-full overflow-y-auto custom-scrollbar px-6 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Workspaces</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Your projects and workspaces
-          </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+          <p className="text-sm text-slate-400">Welcome back! Manage your workspaces and projects.</p>
         </div>
-
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"

@@ -1,6 +1,7 @@
 import Notification from "../models/Notification.model.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
+import { logger } from "../utils/logger.js";
 
 // ── GET /api/notifications ───────────────────────────
 export const getNotifications = async (req, res, next) => {
@@ -94,6 +95,6 @@ export const createNotification = async ({
     });
     return notification;
   } catch (error) {
-    console.error("Failed to create notification:", error);
+    logger.error("Failed to create notification:", error);
   }
 };

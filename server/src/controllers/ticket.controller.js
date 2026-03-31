@@ -172,6 +172,7 @@ export const promoteToTask = async (req, res, next) => {
           columnId,
           assignees: [],
           isInBacklog: !!req.body.isInBacklog,
+          reporter: ticket.reporter, // Link back to original ticket reporter
           activityLog: [
             {
               type: "task_created",
@@ -226,6 +227,8 @@ export const promoteToTask = async (req, res, next) => {
     await session.abortTransaction();
     next(error);
   } finally {
-    session.endSession();
+    if (session) {
+      session.endSession();
+    }
   }
 };

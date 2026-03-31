@@ -1,4 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -10,6 +12,7 @@ import {
   useRenameColumnMutation,
   useDeleteColumnMutation,
 } from "../projects/projectApi";
+import { toast } from "react-hot-toast";
 
 /**
  * A single board column with sortable task list.
@@ -87,30 +90,42 @@ const BoardColumn = ({
 
   const handleDelete = async () => {
     if (tasks.length > 0) {
-      alert(
-        "Cannot delete a column that contains tasks. Please move them first.",
-      );
+      toast.error("Cannot delete a column that contains tasks. Please move them first.");
       setIsMenuOpen(false);
       return;
     }
     if (columnIndex < 3) {
-      alert(
-        "Cannot delete the default base columns (Todo, In Progress, Done).",
-      );
+      toast.error("Cannot delete the default base columns (Todo, In Progress, Done).");
       setIsMenuOpen(false);
       return;
     }
-    if (
-      window.confirm(
-        `Are you sure you want to delete the "${column.title}" column?`,
-      )
-    ) {
-      try {
-        await deleteColumnReq({ projectId, columnId: column.id }).unwrap();
-      } catch {
-        // Fallback or toast notification handles failure
+
+    confirmAlert({
+      customUI: ({ onClose }) => {
+        return (
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl max-w-sm w-full mx-4">
+            <h1 className="text-xl font-bold text-white mb-2">Delete Column</h1>
+            <p className="text-sm text-slate-400 mb-6">Are you sure you want to delete the "{column.title}" column?</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+              <button
+                onClick={async () => {
+                  try {
+                    await deleteColumnReq({ projectId, columnId: column.id }).unwrap();
+                  } catch {
+                    // Fallback or toast notification handles failure
+                  }
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/20"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        );
       }
-    }
+    });
     setIsMenuOpen(false);
   };
 

@@ -191,7 +191,7 @@ const GlobalIssues = () => {
             </div>
             <h3 className="text-xl font-semibold text-white">All caught up!</h3>
             <p className="mt-2 text-slate-400 max-w-sm">
-              You don't have any tickets matching the current criteria across
+              You don't have any issues matching the current criteria across
               your projects.
             </p>
           </div>

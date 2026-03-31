@@ -419,6 +419,19 @@ export const updateTask = async (req, res, next) => {
       });
     }
 
+    // ── Evaluate Assignee Diffs Before Apply ──────────
+    let newlyAssigned = [];
+    if (updates.assignees) {
+      const originalAssignees = new Set(
+        task.assignees.map((id) => id.toString()),
+      );
+      
+      // Calculate who was newly added
+      newlyAssigned = updates.assignees.filter(
+        (assigneeId) => !originalAssignees.has(assigneeId.toString())
+      );
+    }
+
     // ── Apply updates ─────────────────────────────────
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
@@ -435,23 +448,18 @@ export const updateTask = async (req, res, next) => {
     await task.populate("assignees", "username email avatar");
 
     // ── Notify on Assignment Change ───────────────────
-    if (updates.assignees) {
-      const originalAssignees = new Set(
-        task.assignees.map((a) => a._id.toString()),
-      );
-      // 'updates.assignees' is array of IDs (strings)
-      const newAssignees = updates.assignees;
-
-      for (const assigneeId of newAssignees) {
-        // Technically this logic is imperfect because we already updated the task, so originalAssignees
-        // might reflect new state if we populated. But here 'task' was refetched?
-        // Actually, we modified 'task' in memory at line 315.
-        // So we should have compared before applying updates.
-        // For simplicity, let's just notify all current assignees about update if relevant.
-        // Better: Only notify newly assigned.
-        // Implementing proper diffing requires capturing state before loop.
-        // Let's just notify all NEW assignees.
-        // REVISIT: For now, I'll notify all currently assigned users that "Task was updated" if I am not the one updating.
+    if (newlyAssigned.length > 0) {
+      for (const assigneeId of newlyAssigned) {
+        if (assigneeId.toString() !== userId) {
+          await createNotification({
+            recipient: assigneeId,
+            sender: userId,
+            type: "task_assignment",
+            resourceId: id,
+            resourceType: "Task",
+            message: `You were assigned to task: ${updates.title || task.title}`,
+          });
+        }
       }
     }
 

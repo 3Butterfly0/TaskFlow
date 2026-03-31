@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 import {
   useGetProjectByIdQuery,
   useDeleteProjectMutation,
@@ -57,19 +59,35 @@ const Settings = () => {
     { id: "danger", label: "Danger Zone", icon: Trash2 },
   ];
 
-  const handleDelete = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this project? This action cannot be undone.",
-      )
-    )
-      return;
-    try {
-      await deleteProject(projectId).unwrap();
-      navigate("/");
-    } catch (err) {
-      toast.error("Failed to delete project");
-    }
+  const handleDelete = () => {
+    confirmAlert({
+      customUI: ({ onClose }) => {
+        return (
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl max-w-sm w-full mx-4">
+            <h1 className="text-xl font-bold text-white mb-2">Delete Project</h1>
+            <p className="text-sm text-slate-400 mb-6">Are you sure you want to delete this project? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+              <button 
+                onClick={async () => {
+                  try {
+                    await deleteProject(projectId).unwrap();
+                    toast.success("Project deleted successfully");
+                    navigate("/");
+                  } catch (err) {
+                    toast.error("Failed to delete project");
+                  }
+                  onClose();
+                }} 
+                className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/20"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        );
+      }
+    });
   };
 
   const handleUpdate = async (e) => {
@@ -82,23 +100,37 @@ const Settings = () => {
     }
   };
 
-  const handleTransfer = async () => {
-    if (!newOwnerId)
-      return toast.error("Select a member to transfer ownership");
-    if (
-      !window.confirm(
-        "Are you sure you want to transfer ownership? You will lose admin rights.",
-      )
-    )
-      return;
-
-    try {
-      await transferOwnership({ id: projectId, newOwnerId }).unwrap();
-      toast.success("Ownership transferred successfully");
-      navigate("/");
-    } catch (err) {
-      toast.error(err?.data?.message || "Failed to transfer ownership");
-    }
+  const handleTransfer = () => {
+    if (!newOwnerId) return toast.error("Select a member to transfer ownership");
+    
+    confirmAlert({
+      customUI: ({ onClose }) => {
+        return (
+          <div className="rounded-xl border border-yellow-900/50 bg-slate-900 p-6 shadow-2xl max-w-sm w-full mx-4">
+            <h1 className="text-xl font-bold text-yellow-500 mb-2 flex items-center gap-2">Transfer Ownership</h1>
+            <p className="text-sm text-slate-400 mb-6">Are you sure you want to transfer ownership? You will instantly lose Admin rights.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+              <button 
+                onClick={async () => {
+                  try {
+                    await transferOwnership({ id: projectId, newOwnerId }).unwrap();
+                    toast.success("Ownership transferred successfully");
+                    navigate("/");
+                  } catch (err) {
+                    toast.error(err?.data?.message || "Failed to transfer ownership");
+                  }
+                  onClose();
+                }} 
+                className="px-4 py-2 rounded-lg text-sm font-bold text-slate-900 bg-yellow-500 hover:bg-yellow-400 transition"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
+        );
+      }
+    });
   };
 
   if (isProjectLoading)
@@ -208,34 +240,41 @@ const Settings = () => {
         </div>
       )}
       {activeTab === "integrations" && (
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] uppercase font-bold text-slate-400">
-                Coming Soon
+        <div className="space-y-6">
+          <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-6 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-[10px] uppercase font-bold text-indigo-400">
+                Future Update
               </span>
+              <h3 className="text-lg font-bold text-white">Power Up Your Workflow</h3>
             </div>
-            <p className="text-sm text-slate-400 mt-2">
-              Connect with third-party tools.
+            <p className="text-sm text-slate-400 max-w-xl">
+              Connect TaskFlow with your favorite development and communication tools. 
+              Automate notifications, sync code changes, and keep your team in the loop.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {["GitHub", "Slack", "Jira", "Figma"].map((tool) => (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { name: "GitHub", desc: "Sync pull requests and issues", icon: "G" },
+              { name: "Slack", desc: "Get real-time task notifications", icon: "S" },
+              { name: "Jira", desc: "Import legacy projects and tasks", icon: "J" },
+              { name: "Figma", desc: "Embed designs directly in tasks", icon: "F" },
+            ].map((tool) => (
               <div
-                key={tool}
-                className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/30 p-4"
+                key={tool.name}
+                className="flex items-start gap-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:border-slate-700 hover:bg-slate-900"
               >
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded bg-slate-700" />
-                  <span className="font-medium text-slate-200">{tool}</span>
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold text-slate-400 border border-slate-700">
+                  {tool.icon}
                 </div>
-                <button
-                  disabled
-                  className="rounded px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-800/50 border border-slate-700/50 cursor-not-allowed"
-                >
-                  Connect
-                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <h4 className="font-semibold text-slate-200">{tool.name}</h4>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">Waitlist</span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">{tool.desc}</p>
+                </div>
               </div>
             ))}
           </div>

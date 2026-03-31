@@ -23,7 +23,7 @@ const ProjectNavbar = () => {
   const { projectId } = useParams();
 
   return (
-    <nav className="flex items-center gap-6 lg:gap-8 overflow-x-auto custom-scrollbar">
+    <nav className="flex items-center gap-4 lg:gap-8 overflow-x-auto custom-scrollbar">
       {navItems.map((item) => (
         <NavLink
           key={item.path}
