@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { logger } from "../utils/logger.js";
+import logger from "../utils/logger.js";
 
 // Setup transporter for ethereal email for development purposes, assuming real SMTP info not present yet.
 // Usually we'd configure this with host, port, user, pass from env.

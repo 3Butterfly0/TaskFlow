@@ -13,6 +13,7 @@ import {
   Layout,
   ArrowRight,
 } from "lucide-react";
+import ErrorState from "../components/ui/ErrorState";
 
 const GlobalIssues = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const GlobalIssues = () => {
   const projects = projectsData?.data || [];
 
   // Fetch tasks
-  const { data, isLoading } = useGetMyTasksQuery({
+  const { data, isLoading, isError, error } = useGetMyTasksQuery({
     projectId: filter.projectId !== "all" ? filter.projectId : undefined,
     priority: filter.priority !== "all" ? filter.priority : undefined,
     status: filter.status !== "all" ? filter.status : undefined,
@@ -180,11 +181,17 @@ const GlobalIssues = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
+        {isError && (
+          <div className="mb-6">
+            <ErrorState message={error?.data?.message || "Failed to load issues"} />
+          </div>
+        )}
+        
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <Loader className="size-8 animate-spin text-indigo-500" />
           </div>
-        ) : filteredTasks.length === 0 ? (
+        ) : filteredTasks.length === 0 && !isError ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="mb-5 flex size-20 items-center justify-center rounded-2xl bg-slate-900/50 border border-slate-800/80 shadow-inner">
               <CheckCircle className="size-10 text-slate-600" />

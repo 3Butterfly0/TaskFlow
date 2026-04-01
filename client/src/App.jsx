@@ -1,13 +1,16 @@
 import { Toaster } from 'react-hot-toast';
 import { SocketProvider } from "./context/SocketContext";
 import AppRouter from "./routes/AppRouter";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 
 const App = () => {
   return (
-    <SocketProvider>
-      <AppRouter />
-      <Toaster position="top-right" />
-    </SocketProvider>
+    <ErrorBoundary>
+      <SocketProvider>
+        <AppRouter />
+        <Toaster position="top-right" />
+      </SocketProvider>
+    </ErrorBoundary>
   );
 };
 

@@ -1,7 +1,7 @@
 import Notification from "../models/Notification.model.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
-import { logger } from "../utils/logger.js";
+import logger from "../utils/logger.js";
 
 // ── GET /api/notifications ───────────────────────────
 export const getNotifications = async (req, res, next) => {

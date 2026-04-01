@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorState from "../components/ui/ErrorState";
 import { Link } from "react-router-dom";
 import { useGetProjectsQuery } from "../features/projects/projectApi";
 import CreateProjectModal from "../features/projects/CreateProjectModal";
@@ -110,8 +111,8 @@ const Dashboard = () => {
       </div>
 
       {isError && (
-        <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
-          {error?.data?.message || "Failed to load projects"}
+        <div className="mb-4">
+          <ErrorState message={error?.data?.message || "Failed to load projects"} />
         </div>
       )}
 

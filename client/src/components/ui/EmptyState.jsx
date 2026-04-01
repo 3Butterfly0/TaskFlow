@@ -1,12 +1,10 @@
-import { cn } from "../../utils/cn";
-
 const EmptyState = ({ icon: Icon, title, description, action, className }) => {
   return (
     <div
-      className={cn(
+      className={[
         "flex min-h-[400px] flex-col items-center justify-center space-y-4 rounded-xl border border-dashed border-slate-800 bg-slate-900/30 p-8 text-center",
         className,
-      )}
+      ].filter(Boolean).join(" ")}
     >
       {Icon && (
         <div className="flex size-14 items-center justify-center rounded-2xl bg-slate-800/50 text-slate-500 shadow-inner">

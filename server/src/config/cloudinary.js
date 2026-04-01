@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 import dotenv from "dotenv";
+import logger from "../utils/logger.js";
 
 dotenv.config();
 
@@ -22,7 +23,7 @@ export const uploadToCloudinary = (buffer, folder = "taskflow_uploads") => {
   return new Promise((resolve, reject) => {
     // Check if credentials are set
     if (!process.env.CLOUDINARY_CLOUD_NAME) {
-      console.warn("Cloudinary credentials missing. Returning mock URL.");
+      logger.warn("Cloudinary credentials missing. Returning mock URL.");
       return resolve({
         secure_url: `https://mock-upload.com/${Date.now()}_file.png`,
         public_id: `mock_${Date.now()}`,

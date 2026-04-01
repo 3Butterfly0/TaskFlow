@@ -9,12 +9,13 @@ import {
 } from "../features/tasks/taskApi";
 import { useGetProjectByIdQuery } from "../features/projects/projectApi";
 import TaskDetails from "../features/tasks/TaskDetails";
+import ErrorState from "../components/ui/ErrorState";
 import { Loader } from "lucide-react";
 import toast from "react-hot-toast";
 
 const Calendar = () => {
   const { projectId } = useParams();
-  const { data: tasksData, isLoading: isLoadingTasks } =
+  const { data: tasksData, isLoading: isLoadingTasks, isError, error } =
     useGetTasksByProjectQuery(projectId);
   const { data: projectData } = useGetProjectByIdQuery(projectId);
   const [updateTask] = useUpdateTaskMutation();
@@ -126,6 +127,12 @@ const Calendar = () => {
           </select>
         </div>
       </div>
+
+      {isError && (
+        <div className="mb-4">
+          <ErrorState message={error?.data?.message || "Failed to load tasks"} />
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden calendar-wrapper relative">
         <style

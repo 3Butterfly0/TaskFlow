@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import ErrorState from "../../components/ui/ErrorState";
 import { useGetProjectAnalyticsQuery } from "./analyticsApi";
 import { useGetProjectMembersQuery } from "../projects/projectApi";
 import {
@@ -61,6 +62,8 @@ const AnalyticsDashboard = ({ projectId }) => {
     data: analyticsData,
     isLoading,
     isFetching,
+    isError,
+    error,
   } = useGetProjectAnalyticsQuery({ projectId, scope: requestedScope });
   const { data: membersData } = useGetProjectMembersQuery(projectId);
 
@@ -73,6 +76,14 @@ const AnalyticsDashboard = ({ projectId }) => {
       setRequestedScope(analytics.scope);
     }
   }, [analytics, requestedScope]);
+
+  if (isError) {
+    return (
+      <div className="pt-6">
+        <ErrorState message={error?.data?.message || "Failed to load project analytics"} />
+      </div>
+    );
+  }
 
   if (isLoading || !analytics) {
     return (

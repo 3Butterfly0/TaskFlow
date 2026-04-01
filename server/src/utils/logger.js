@@ -2,10 +2,6 @@ import { createLogger, format, transports } from "winston";
 
 const { combine, timestamp, printf, colorize, errors } = format;
 
-/**
- * Custom log format:
- *   2026-02-11 15:05:00 [INFO]: Server started on port 5000
- */
 const logFormat = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level}]: ${stack || message}`;
 });

@@ -5,10 +5,11 @@ import { format } from "date-fns";
 import { Search, Filter, ArchiveX, CheckCircle, XCircle } from "lucide-react";
 import TaskDetails from "../features/tasks/TaskDetails";
 import { useGetProjectByIdQuery } from "../features/projects/projectApi";
+import ErrorState from "../components/ui/ErrorState";
 
 const History = () => {
   const { projectId } = useParams();
-  const { data, isLoading } = useGetHistoryTasksQuery(projectId);
+  const { data, isLoading, isError, error } = useGetHistoryTasksQuery(projectId);
   const { data: projectData } = useGetProjectByIdQuery(projectId);
   const project = projectData?.data;
 
@@ -84,11 +85,17 @@ const History = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        {isError && (
+          <div className="mb-6">
+            <ErrorState message={error?.data?.message || "Failed to load history tasks"} />
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="size-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
           </div>
-        ) : filteredTasks.length === 0 ? (
+        ) : filteredTasks.length === 0 && !isError ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-slate-900 border border-slate-800">
               <ArchiveX className="size-8 text-slate-600" />

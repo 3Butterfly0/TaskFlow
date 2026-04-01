@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import ErrorState from "../components/ui/ErrorState";
 import { useParams, Link } from "react-router-dom";
 import { useGetTicketsQuery } from "../features/tickets/ticketApi";
 import RaiseTicketModal from "../features/tickets/RaiseTicketModal";
@@ -268,8 +269,8 @@ const Tickets = () => {
       {!isLoading && tickets.length > 0 && <StatsBar tickets={tickets} />}
 
       {isError && (
-        <div className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20">
-          {error?.data?.message || "Failed to load tickets"}
+        <div className="mb-4">
+          <ErrorState message={error?.data?.message || "Failed to load tickets"} />
         </div>
       )}
 

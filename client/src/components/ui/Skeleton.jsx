@@ -1,9 +1,8 @@
-import { cn } from "../../utils/cn";
 
 const Skeleton = ({ className, ...props }) => {
   return (
     <div
-      className={cn("animate-pulse rounded bg-slate-800", className)}
+      className={["animate-pulse rounded bg-slate-800", className].filter(Boolean).join(" ")}
       {...props}
     />
   );
