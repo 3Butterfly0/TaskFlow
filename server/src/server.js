@@ -50,7 +50,7 @@ const startServer = async () => {
     );
   });
 
-  // ── Graceful shutdown helpers ──────────────────────
+  // Graceful shutdown
   const shutdown = (signal) => {
     logger.info(`${signal} received – shutting down gracefully…`);
     httpServer.close(() => {
@@ -63,7 +63,7 @@ const startServer = async () => {
   process.on("SIGINT", () => shutdown("SIGINT"));
 };
 
-// ── Safety nets ───────────────────────────────────────
+// Global error handlers
 process.on("uncaughtException", (err) => {
   logger.error("UNCAUGHT EXCEPTION – shutting down…", err);
   process.exit(1);

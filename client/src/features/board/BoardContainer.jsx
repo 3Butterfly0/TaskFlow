@@ -63,7 +63,7 @@ const BoardContainer = ({
     setOptimisticColumns(null);
   }
 
-  // ── Task map for O(1) lookups ──────────────────────
+  // Task map for O(1) lookups
   const taskMap = useMemo(() => {
     const map = {};
     for (const task of tasks) {
@@ -74,10 +74,7 @@ const BoardContainer = ({
 
   const [activeTask, setActiveTask] = useState(null);
 
-  // ── Drag origin ref ────────────────────────────────
-  // Captures the source column ID at drag start.
-  // This is the SINGLE SOURCE OF TRUTH for where the task
-  // originally lived — never changes during the drag.
+  // Drag origin ref – captures the source column at drag start
   const dragOriginRef = useRef(null);
 
   const sensors = useSensors(
@@ -203,7 +200,7 @@ const BoardContainer = ({
       }
 
       if (currentColumn.id === origin.sourceColumnId) {
-        // ── Same column reorder ────────────────────
+        // Same column reorder
         const colTaskIds = [...currentColumn.taskIds];
         const oldIdx = origin.sourceTaskIds.indexOf(activeId);
         const newIdx = colTaskIds.indexOf(overId);
@@ -231,7 +228,7 @@ const BoardContainer = ({
           setOptimisticColumns(null);
         }
       } else {
-        // ── Cross-column move ──────────────────────
+        // Cross-column move
         const sourceColumnId = origin.sourceColumnId;
         const destinationColumnId = currentColumn.id;
 

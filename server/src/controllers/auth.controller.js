@@ -8,7 +8,7 @@ import { OAuth2Client } from "google-auth-library";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// ── Helper: generate token & set HttpOnly cookie ──────
+// Generate JWT and set HttpOnly cookie
 const generateTokenAndSetCookie = (res, userId) => {
   const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: "7d",
@@ -18,20 +18,17 @@ const generateTokenAndSetCookie = (res, userId) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   return token;
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/auth/register
-// ──────────────────────────────────────────────────────
 export const register = async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
 
-    // ── Validation ────────────────────────────────────
     if (!username || !email || !password) {
       throw new ApiError(400, "Please provide username, email, and password");
     }
@@ -47,16 +44,12 @@ export const register = async (req, res, next) => {
       );
     }
 
-    // ── Check for existing user ───────────────────────
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       throw new ApiError(409, "A user with this email already exists");
     }
 
-    // ── Create user (password hashed via pre-save hook)
     const user = await User.create({ username, email, password });
-
-    // ── Issue token ───────────────────────────────────
     generateTokenAndSetCookie(res, user._id);
 
     res
@@ -73,32 +66,26 @@ export const register = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/auth/login
-// ──────────────────────────────────────────────────────
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // ── Validation ────────────────────────────────────
     if (!email || !password) {
       throw new ApiError(400, "Please provide email and password");
     }
 
-    // ── Find user (include password for comparison) ───
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       throw new ApiError(401, "Invalid email or password");
     }
 
-    // ── Verify password ───────────────────────────────
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       throw new ApiError(401, "Invalid email or password");
     }
 
     if (user.mfaEnabled) {
-      // Issue a short-lived temp token for MFA validation step
       const tempToken = jwt.sign(
         { id: user._id, mfaPending: true },
         process.env.JWT_SECRET,
@@ -117,11 +104,9 @@ export const login = async (req, res, next) => {
         );
     }
 
-    // ── Update lastSeen ───────────────────────────────
     user.lastSeen = new Date();
     await user.save({ validateModifiedOnly: true });
 
-    // ── Issue token ───────────────────────────────────
     generateTokenAndSetCookie(res, user._id);
 
     res
@@ -134,16 +119,14 @@ export const login = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/auth/logout
-// ──────────────────────────────────────────────────────
 export const logout = async (_req, res, next) => {
   try {
     res.cookie("token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 0, // Expire immediately
+      maxAge: 0,
     });
 
     res.status(200).json(new ApiResponse(200, null, "Logged out successfully"));
@@ -152,12 +135,9 @@ export const logout = async (_req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
-// GET /api/auth/me   (Protected)
-// ──────────────────────────────────────────────────────
+// GET /api/auth/me
 export const getMe = async (req, res, next) => {
   try {
-    // req.user is set by auth middleware
     const user = await User.findById(req.user.id)
       .populate("pinnedProjects", "name")
       .populate("lastAccessedProjects.projectId", "name");
@@ -235,7 +215,6 @@ export const changePassword = async (req, res, next) => {
     }
 
     user.password = newPassword;
-    // Pre-save hook will hash it
     await user.save();
 
     res
@@ -258,7 +237,6 @@ export const setupMfa = async (req, res, next) => {
     });
     const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
 
-    // Save secret temporarily (not fully enabled until verified)
     user.mfaSecret = secret.base32;
     await user.save({ validateModifiedOnly: true });
 
@@ -290,7 +268,7 @@ export const verifyMfa = async (req, res, next) => {
       secret: user.mfaSecret,
       encoding: "base32",
       token,
-      window: 1, // Allow 30 seconds drift either side
+      window: 1,
     });
 
     if (!isValid) throw new ApiError(400, "Invalid code. Please try again.");
@@ -348,7 +326,6 @@ export const validateMfa = async (req, res, next) => {
       throw new ApiError(400, "Temporary token and 2FA code are required");
     }
 
-    // Verify temp token
     let decoded;
     try {
       decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
@@ -392,9 +369,7 @@ export const validateMfa = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/auth/google
-// ──────────────────────────────────────────────────────
 export const googleLogin = async (req, res, next) => {
   try {
     const { credential } = req.body;

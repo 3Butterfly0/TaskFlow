@@ -16,14 +16,8 @@ import { toast } from "react-hot-toast";
 
 /**
  * A single board column with sortable task list.
- *
- * Per production-blueprint.md §2:
- *   Column defines order via taskIds array.
- *   Tasks are looked up from the task map by ID.
- *
- * Props:
- *   column  – { id, title, taskIds }
- *   taskMap – Map<taskId, taskDoc>
+ * Column defines order via taskIds array.
+ * Tasks are looked up from the task map by ID.
  */
 const BoardColumn = ({
   column,

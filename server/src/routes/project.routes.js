@@ -6,7 +6,6 @@ import {
   deleteProject,
   togglePinProject,
   updateLastAccessed,
-  getProjectMembers,
   addColumn,
   updateProject,
   transferOwnership,
@@ -20,7 +19,7 @@ const router = Router();
 // All project routes are protected
 router.use(protect);
 
-// ── Project routes ───────────────────────────────────
+// Project routes
 router.post("/", createProject);
 router.get("/", getProjects);
 
@@ -30,7 +29,6 @@ router.delete("/:id", deleteProject);
 router.patch("/:id/transfer", transferOwnership);
 router.post("/:id/pin", togglePinProject);
 router.post("/:id/access", updateLastAccessed);
-// router.get("/:id/members", getProjectMembers); // Moved to team.routes.js
 router.post("/:id/columns", addColumn);
 router.patch("/:id/columns/:columnId", renameColumn);
 router.delete("/:id/columns/:columnId", deleteColumn);

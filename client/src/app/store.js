@@ -5,11 +5,7 @@ import { rtkQueryErrorLogger } from "./errorHandler";
 
 /**
  * Redux store configuration.
- *
- * Per architecture.md §8:
- *   Server data → RTK Query (via baseApi)
- *   Auth state  → Redux slice
- *   UI state    → Local or Context
+ * Server data → RTK Query, Auth state → Redux slice, UI state → Local/Context
  */
 const store = configureStore({
   reducer: {

@@ -6,10 +6,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import {sendEmail} from "../utils/email.js";
 
-// ──────────────────────────────────────────────────────
 // POST /api/projects/:projectId/invitations
-// Owner/Admin invites a user by email
-// ──────────────────────────────────────────────────────
 export const createInvitation = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -25,16 +22,9 @@ export const createInvitation = async (req, res, next) => {
       throw new ApiError(404, "Project not found");
     }
 
-    // Role check: Only owner or admin can invite
-    // Usually members array has a structure or just ObjectIds. Since members array in Project.model.js right now is just ObjectId array,
-    // everyone is basically a member. Wait, team.controller defines permissions. Let's assume Owner + members for now based on team controller logic.
     const isOwner = project.owner.toString() === inviterId;
     if (!isOwner) {
-      // Check if they are admin in future if schema has roles. For now, enforce Owner only to match typical rigid behavior.
-      // Let's check team.controller which says owner or admin role (if we had roles). Since we don't, just owner.
-      // Actually `team.controller.js` has some logic. Assume owner for strict security, or if 'adminRole = true' later.
-      if (!isOwner)
-        throw new ApiError(403, "Only project owners can invite new members");
+      throw new ApiError(403, "Only project owners can invite new members");
     }
 
     // Check if user is already a member
@@ -58,10 +48,9 @@ export const createInvitation = async (req, res, next) => {
       );
     }
 
-    // Generate token
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour TTL
+    expiresAt.setHours(expiresAt.getHours() + 24);
 
     const invitation = await Invitation.create({
       projectId,
@@ -72,20 +61,32 @@ export const createInvitation = async (req, res, next) => {
       expiresAt,
     });
 
-    // Determine the accept link (Client URL + route)
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const acceptLink = `${clientUrl}/accept-invite?token=${token}`;
 
-    // Send email
     await sendEmail({
       to: email,
-      subject: `You've been invited to join project: ${project.name}`,
+      subject: `You've been invited to join "${project.name}" on TaskFlow`,
       html: `
-        <h2>TaskFlow Invitation</h2>
-        <p>You have been invited by ${req.user.username} to join the project: <strong>${project.name}</strong>.</p>
-        <p>This invitation will expire in 24 hours.</p>
-        <p><a href="${acceptLink}" style="padding: 10px 15px; background: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
-        <p>Or paste this link in your browser: <br> ${acceptLink}</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; background: #0f172a; border-radius: 12px; padding: 40px 32px; color: #cbd5e1;">
+          <h1 style="color: #fff; font-size: 22px; margin: 0 0 8px;">You're invited to TaskFlow</h1>
+          <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #94a3b8;">
+            <strong style="color: #e2e8f0;">${req.user.username}</strong> has invited you to collaborate on the project
+            <strong style="color: #818cf8;">${project.name}</strong>.
+          </p>
+          <a href="${acceptLink}" style="display: inline-block; padding: 12px 28px; background: #4f46e5; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+            Accept Invitation
+          </a>
+          <p style="margin: 24px 0 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+            This invitation expires in 24 hours.<br/>
+            If you can't click the button, paste this link in your browser:<br/>
+            <a href="${acceptLink}" style="color: #818cf8; word-break: break-all;">${acceptLink}</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #1e293b; margin: 24px 0;" />
+          <p style="margin: 0; font-size: 12px; color: #475569;">
+            This is an automated message from TaskFlow. Please do not reply to this email.
+          </p>
+        </div>
       `,
     });
 
@@ -97,10 +98,7 @@ export const createInvitation = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // GET /api/projects/:projectId/invitations
-// List pending invitations
-// ──────────────────────────────────────────────────────
 export const getProjectInvitations = async (req, res, next) => {
   try {
     const { projectId } = req.params;
@@ -130,15 +128,11 @@ export const getProjectInvitations = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // POST /api/invitations/:token/accept
-// Invitee accepts the invitation. Token is public.
-// But they must be logged into TaskFlow to actually join.
-// ──────────────────────────────────────────────────────
 export const acceptInvitation = async (req, res, next) => {
   try {
     const { token } = req.params;
-    const userId = req.user.id; // User must exist and be authenticated to call this
+    const userId = req.user.id;
 
     const invitation = await Invitation.findOne({ token, status: "pending" });
 
@@ -157,15 +151,13 @@ export const acceptInvitation = async (req, res, next) => {
       throw new ApiError(404, "Project no longer exists");
     }
 
-    // Add to project members if not already
     if (!project.members.includes(userId)) {
       project.members.push(userId);
       await project.save();
     }
 
-    // Mark accepted
     invitation.status = "accepted";
-    invitation.inviteeUserId = userId; // Associate definitely
+    invitation.inviteeUserId = userId;
     await invitation.save();
 
     res
@@ -182,10 +174,7 @@ export const acceptInvitation = async (req, res, next) => {
   }
 };
 
-// ──────────────────────────────────────────────────────
 // DELETE /api/invitations/:id
-// Cancel an invitation
-// ──────────────────────────────────────────────────────
 export const cancelInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;

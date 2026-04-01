@@ -2,11 +2,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import AppLayout from "../components/layout/AppLayout";
 
-// ── Public pages ─────────────────────────────────────
+// Public pages
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 
-// ── Protected pages ──────────────────────────────────
+// Protected pages
 import Dashboard from "../pages/Dashboard";
 import PublicOrDashboard from "./PublicOrDashboard";
 import AcceptInvite from "../pages/AcceptInvite";

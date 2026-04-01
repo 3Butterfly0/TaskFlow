@@ -21,35 +21,28 @@ const Calendar = () => {
   const [updateTask] = useUpdateTaskMutation();
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-
   const calendarRef = useRef(null);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const tasks = tasksData?.data || [];
   const project = projectData?.data;
 
-  // Map tasks to FullCalendar event objects
   const events = tasks
-    .filter((task) => task.dueDate) // Only tasks with due dates
+    .filter((task) => task.dueDate)
     .map((task) => {
-      // Map priority to background colors
-      let backgroundColor = "#3b82f6"; // default blue (low)
-      if (task.priority === "critical")
-        backgroundColor = "#ef4444"; // red
-      else if (task.priority === "high")
-        backgroundColor = "#f97316"; // orange
-      else if (task.priority === "medium") backgroundColor = "#f59e0b"; // amber
+      let backgroundColor = "#3b82f6";
+      if (task.priority === "critical") backgroundColor = "#ef4444";
+      else if (task.priority === "high") backgroundColor = "#f97316";
+      else if (task.priority === "medium") backgroundColor = "#f59e0b";
 
       return {
         id: task._id,
         title: task.title,
         start: task.dueDate,
-        allDay: true, // simplified
+        allDay: true,
         backgroundColor,
         borderColor: backgroundColor,
-        extendedProps: {
-          task,
-        },
+        extendedProps: { task },
       };
     });
 
@@ -83,7 +76,7 @@ const Calendar = () => {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 overflow-hidden px-6 py-4 custom-scrollbar">
+    <div className="flex flex-1 flex-col min-h-0 px-6 py-4 overflow-y-auto custom-scrollbar">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-white tracking-tight">
           {currentDate.toLocaleString("default", {
@@ -134,68 +127,67 @@ const Calendar = () => {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden calendar-wrapper relative">
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-          .fc {
-            height: 100%;
-            width: 100%;
-            --fc-page-bg-color: transparent;
-            --fc-neutral-bg-color: #0f172a;
-            --fc-neutral-text-color: #cbd5e1;
-            --fc-border-color: #1e293b;
-            --fc-button-text-color: #cbd5e1;
-            --fc-button-bg-color: #1e293b;
-            --fc-button-border-color: #334155;
-            --fc-button-hover-bg-color: #334155;
-            --fc-button-hover-border-color: #475569;
-            --fc-button-active-bg-color: #475569;
-            --fc-button-active-border-color: #64748b;
-            --fc-event-bg-color: #6366f1;
-            --fc-event-border-color: #6366f1;
-            --fc-event-text-color: #fff;
-            --fc-today-bg-color: rgba(99, 102, 241, 0.05);
-            font-family: inherit;
-          }
-          .fc-theme-standard th { 
-            border: 1px solid #1e293b; 
-            padding: 8px 0; 
-            background-color: #0f172a; 
-            color: #94a3b8; 
-          }
-          .fc-theme-standard td { 
-            border: 1px solid #1e293b; 
-          }
-          .fc-daygrid-day-number { color: #cbd5e1; font-size: 0.875rem; padding: 7px !important; }
-          .fc .fc-toolbar-title { display: none; }
-        `,
+      <style>{`
+        .calendar-wrapper .fc {
+          --fc-page-bg-color: transparent;
+          --fc-neutral-bg-color: #0f172a;
+          --fc-neutral-text-color: #cbd5e1;
+          --fc-border-color: #1e293b;
+          --fc-button-text-color: #cbd5e1;
+          --fc-button-bg-color: #1e293b;
+          --fc-button-border-color: #334155;
+          --fc-button-hover-bg-color: #334155;
+          --fc-button-hover-border-color: #475569;
+          --fc-button-active-bg-color: #475569;
+          --fc-button-active-border-color: #64748b;
+          --fc-event-bg-color: #6366f1;
+          --fc-event-border-color: #6366f1;
+          --fc-event-text-color: #fff;
+          --fc-today-bg-color: rgba(99, 102, 241, 0.05);
+          font-family: inherit;
+        }
+        .calendar-wrapper .fc-theme-standard th {
+          border: 1px solid #1e293b;
+          padding: 8px 0;
+          background-color: #0f172a;
+          color: #94a3b8;
+        }
+        .calendar-wrapper .fc-theme-standard td {
+          border: 1px solid #1e293b;
+        }
+        .calendar-wrapper .fc-daygrid-day-number {
+          color: #cbd5e1;
+          font-size: 0.875rem;
+          padding: 7px !important;
+        }
+        .calendar-wrapper .fc .fc-toolbar-title {
+          display: none;
+        }
+      `}</style>
+
+      <div className="flex-1 min-h-[500px] bg-slate-900 border border-slate-800 rounded-xl overflow-hidden calendar-wrapper p-4">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          events={events}
+          editable={true}
+          droppable={true}
+          datesSet={() => {
+            if (calendarRef.current) {
+              setCurrentDate(calendarRef.current.getApi().getDate());
+            }
           }}
+          eventDrop={handleEventDrop}
+          eventClick={handleEventClick}
+          headerToolbar={{
+            left: "",
+            center: "",
+            right: "today prev,next",
+          }}
+          height="100%"
+          dayMaxEvents={3}
         />
-        <div className="absolute inset-4">
-          <FullCalendar
-            ref={calendarRef}
-            plugins={[dayGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
-            events={events}
-            editable={true}
-            droppable={true}
-            datesSet={() => {
-              if (calendarRef.current) {
-                setCurrentDate(calendarRef.current.getApi().getDate());
-              }
-            }}
-            eventDrop={handleEventDrop}
-            eventClick={handleEventClick}
-            headerToolbar={{
-              left: "",
-              center: "",
-              right: "today prev,next",
-            }}
-            height="100%"
-            dayMaxEvents={3}
-          />
-        </div>
       </div>
 
       <TaskDetails

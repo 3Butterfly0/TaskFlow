@@ -42,7 +42,7 @@ export const getProjectAnalytics = async (req, res, next) => {
           )
         : allTasks;
 
-    // ── Aggregation Logic ─────────────────────────────
+    // Aggregation logic
 
     // 1. Column Mapping
     const columnMap = {};

@@ -1,15 +1,11 @@
 import nodemailer from "nodemailer";
 import logger from "../utils/logger.js";
 
-// Setup transporter for ethereal email for development purposes, assuming real SMTP info not present yet.
-// Usually we'd configure this with host, port, user, pass from env.
-
 let transporter = null;
 
 const createTransporter = async () => {
   if (transporter) return transporter;
 
-  // For testing, let's use Ethereal Email if no credentials are provided.
   if (process.env.SMTP_HOST && process.env.SMTP_PORT) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -20,18 +16,18 @@ const createTransporter = async () => {
       },
     });
   } else {
-    // Generate test SMTP service account from ethereal.email
+    // Fallback to Ethereal test account when no SMTP is configured
     const testAccount = await nodemailer.createTestAccount();
     transporter = nodemailer.createTransport({
       host: "smtp.ethereal.email",
       port: 587,
-      secure: false, // true for 465, false for other ports
+      secure: false,
       auth: {
-        user: testAccount.user, // generated ethereal user
-        pass: testAccount.pass, // generated ethereal password
+        user: testAccount.user,
+        pass: testAccount.pass,
       },
     });
-    logger.info("No SMTP settings in .env. Falling back to Ethereal Mail...");
+    logger.info("No SMTP settings found. Using Ethereal Mail for testing.");
   }
   return transporter;
 };
@@ -40,16 +36,17 @@ export const sendEmail = async ({ to, subject, html }) => {
   try {
     const tp = await createTransporter();
 
+    const fromAddress = process.env.SMTP_FROM || '"TaskFlow" <noreply@taskflow.app>';
+
     const info = await tp.sendMail({
-      from: '"TaskFlow System" <noreply@taskflow.local>', // sender address
+      from: fromAddress,
       to,
       subject,
       html,
     });
 
-    logger.info(`Message sent: ${info.messageId}`);
+    logger.info(`Email sent: ${info.messageId}`);
 
-    // Preview URL available only when using Ethereal account
     if (info.messageId && nodemailer.getTestMessageUrl(info)) {
       logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     }
