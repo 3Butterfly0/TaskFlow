@@ -31,14 +31,20 @@ const errorHandler = (err, _req, res, _next) => {
     message = messages.join(". ");
   }
 
-  logger.error(err);
+  // Log error with request ID if available
+  logger.error({
+    message,
+    stack: err.stack,
+    requestId: _req.id,
+    statusCode,
+  });
 
   res.status(statusCode).json({
     success: false,
     error: {
       message,
       code: statusCode,
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+      ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
     },
   });
 };

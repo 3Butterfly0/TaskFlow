@@ -2,22 +2,25 @@ import { createLogger, format, transports } from "winston";
 
 const { combine, timestamp, printf, colorize, errors } = format;
 
-const logFormat = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level}]: ${stack || message}`;
+const logFormat = printf(({ level, message, timestamp, stack, requestId }) => {
+  return `${timestamp} [${level}]${requestId ? ` [${requestId}]` : ""}: ${stack || message}`;
 });
 
 const logger = createLogger({
-  level: process.env.NODE_ENV === "production" ? "warn" : "debug",
+  level: process.env.NODE_ENV === "production" ? "info" : "debug",
   format: combine(
     timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     errors({ stack: true }),
-    logFormat,
+    process.env.NODE_ENV === "production" ? format.json() : logFormat,
   ),
   defaultMeta: { service: "taskflow-server" },
   transports: [
     // Console output
     new transports.Console({
-      format: combine(colorize(), logFormat),
+      format: combine(
+        colorize({ all: process.env.NODE_ENV !== "production" }),
+        process.env.NODE_ENV === "production" ? format.json() : logFormat,
+      ),
     }),
 
     // Error log file
