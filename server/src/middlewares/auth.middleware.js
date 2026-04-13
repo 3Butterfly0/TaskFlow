@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import User from "../models/User.model.js";
 import ApiError from "../utils/ApiError.js";
 
 // Protect middleware – verifies JWT from HttpOnly cookie
@@ -11,7 +12,16 @@ const protect = async (req, _res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id };
+    
+    // Fetch user with only needed fields to avoid data leak
+    const user = await User.findById(decoded.id).select(
+      "username email role pinnedProjects lastAccessedProjects",
+    );
+    if (!user) {
+      throw new ApiError(401, "User no longer exists");
+    }
+
+    req.user = user; // Safe user object
 
     next();
   } catch (error) {

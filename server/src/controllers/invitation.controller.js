@@ -1,29 +1,25 @@
 import crypto from "crypto";
+import mongoose from "mongoose";
 import Project from "../models/Project.model.js";
 import User from "../models/User.model.js";
-import {Invitation} from "../models/Invitation.model.js";
+import { Invitation } from "../models/Invitation.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
-import {sendEmail} from "../utils/email.js";
+import { sendEmail } from "../utils/email.js";
 
 // POST /api/projects/:projectId/invitations
 export const createInvitation = async (req, res, next) => {
   try {
-    const { projectId } = req.params;
     const { email } = req.body;
-    const inviterId = req.user.id;
+    const project = req.project;
+    const inviterId = req.user._id.toString();
 
     if (!email) {
       throw new ApiError(400, "Email is required");
     }
 
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new ApiError(404, "Project not found");
-    }
-
-    const isOwner = project.owner.toString() === inviterId;
-    if (!isOwner) {
+    // Only owners can invite members
+    if (project.owner.toString() !== inviterId) {
       throw new ApiError(403, "Only project owners can invite new members");
     }
 
@@ -35,7 +31,7 @@ export const createInvitation = async (req, res, next) => {
 
     // Check if active invitation already exists
     const existingInvite = await Invitation.findOne({
-      projectId,
+      projectId: project._id,
       inviteeEmail: email,
       status: "pending",
       expiresAt: { $gt: new Date() },
@@ -53,7 +49,7 @@ export const createInvitation = async (req, res, next) => {
     expiresAt.setHours(expiresAt.getHours() + 24);
 
     const invitation = await Invitation.create({
-      projectId,
+      projectId: project._id,
       invitedBy: inviterId,
       inviteeEmail: email,
       inviteeUserId: targetUser ? targetUser._id : null,
@@ -101,11 +97,8 @@ export const createInvitation = async (req, res, next) => {
 // GET /api/projects/:projectId/invitations
 export const getProjectInvitations = async (req, res, next) => {
   try {
-    const { projectId } = req.params;
-    const userId = req.user.id;
-
-    const project = await Project.findById(projectId);
-    if (!project) throw new ApiError(404, "Project not found");
+    const project = req.project;
+    const userId = req.user._id.toString();
 
     if (project.owner.toString() !== userId) {
       throw new ApiError(
@@ -115,7 +108,7 @@ export const getProjectInvitations = async (req, res, next) => {
     }
 
     const invitations = await Invitation.find({
-      projectId,
+      projectId: project._id,
       status: "pending",
       expiresAt: { $gt: new Date() },
     }).populate("invitedBy", "username avatar email");
@@ -130,11 +123,14 @@ export const getProjectInvitations = async (req, res, next) => {
 
 // POST /api/invitations/:token/accept
 export const acceptInvitation = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { token } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id.toString();
 
-    const invitation = await Invitation.findOne({ token, status: "pending" });
+    const invitation = await Invitation.findOne({ token, status: "pending" }).session(session);
 
     if (!invitation) {
       throw new ApiError(404, "Invitation not found or has been revoked");
@@ -142,23 +138,25 @@ export const acceptInvitation = async (req, res, next) => {
 
     if (new Date() > invitation.expiresAt) {
       invitation.status = "expired";
-      await invitation.save();
+      await invitation.save({ session });
       throw new ApiError(400, "Invitation has expired");
     }
 
-    const project = await Project.findById(invitation.projectId);
+    const project = await Project.findById(invitation.projectId).session(session);
     if (!project) {
       throw new ApiError(404, "Project no longer exists");
     }
 
     if (!project.members.includes(userId)) {
       project.members.push(userId);
-      await project.save();
+      await project.save({ session });
     }
 
     invitation.status = "accepted";
     invitation.inviteeUserId = userId;
-    await invitation.save();
+    await invitation.save({ session });
+
+    await session.commitTransaction();
 
     res
       .status(200)
@@ -170,7 +168,10 @@ export const acceptInvitation = async (req, res, next) => {
         ),
       );
   } catch (err) {
+    await session.abortTransaction();
     next(err);
+  } finally {
+    session.endSession();
   }
 };
 
@@ -178,14 +179,21 @@ export const acceptInvitation = async (req, res, next) => {
 export const cancelInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-
     const invitation = await Invitation.findById(id);
     if (!invitation) throw new ApiError(404, "Invitation not found");
 
+    const userId = req.user._id.toString();
     const project = await Project.findById(invitation.projectId);
-    if (!project || project.owner.toString() !== userId) {
-      throw new ApiError(403, "Not authorized to cancel this invitation");
+    
+    if (!project) {
+      // If project is gone, just delete the invitation
+      await Invitation.findByIdAndDelete(id);
+      return res.status(200).json(new ApiResponse(200, null, "Invitation removed (orphan)"));
+    }
+
+    // Only someone with admin access to the project can cancel invitations
+    if (project.owner.toString() !== userId) {
+      throw new ApiError(403, "Only the project owner can cancel invitations");
     }
 
     await Invitation.findByIdAndDelete(id);

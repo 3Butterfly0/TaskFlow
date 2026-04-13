@@ -85,8 +85,20 @@ const attachmentSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    publicId: {
+      type: String,
+      required: true,
+    },
+    size: {
+      type: Number,
+      required: true,
+    },
+    type: {
+      type: String,
+      required: true,
+    },
   },
-  { _id: false },
+  { _id: true },
 );
 
 // Task schema
@@ -132,6 +144,11 @@ const taskSchema = new mongoose.Schema(
     dueDate: {
       type: Date,
       default: null,
+    },
+
+    isArchived: {
+      type: Boolean,
+      default: false,
     },
 
     // Extended task fields

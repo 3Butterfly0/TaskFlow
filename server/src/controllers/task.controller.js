@@ -4,32 +4,17 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { emitToProject } from "../config/socket.js";
 import { createNotification } from "./notification.controller.js";
+import { logActivity } from "../utils/activityLogger.js";
+import { deleteFromCloudinary } from "../config/cloudinary.js";
 
 // GET /api/tasks?projectId=xxx
 export const getTasksByProject = async (req, res, next) => {
   try {
-    const { projectId } = req.query;
-
-    if (!projectId) {
-      throw new ApiError(400, "projectId query parameter is required");
-    }
-
-    // Access check
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new ApiError(404, "Project not found");
-    }
-
-    const userId = req.user.id;
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
-    }
+    const projectId = req.project._id;
 
     // Build query
-    const query = { projectId };
+    const showArchived = req.query.isArchived === 'true';
+    const query = { projectId, isArchived: showArchived };
 
     if (req.query.status) {
       query.status = { $in: req.query.status.split(",") };
@@ -43,14 +28,31 @@ export const getTasksByProject = async (req, res, next) => {
       ];
     }
 
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const totalTasks = await Task.countDocuments(query);
     const tasks = await Task.find(query)
       .populate("assignees", "username email avatar")
       .populate("reporter", "username email avatar")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     res
       .status(200)
-      .json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
+      .json(new ApiResponse(200, {
+        tasks,
+        pagination: {
+          total: totalTasks,
+          page,
+          limit,
+          totalPages: Math.ceil(totalTasks / limit)
+        }
+      }, "Tasks fetched successfully"));
   } catch (error) {
     next(error);
   }
@@ -62,7 +64,8 @@ export const getMyTasks = async (req, res, next) => {
     const userId = req.user.id;
     const { status, priority, projectId } = req.query;
 
-    const query = { assignees: userId };
+    const showArchived = req.query.isArchived === 'true';
+    const query = { assignees: userId, isArchived: showArchived };
 
     if (status) query.status = { $in: status.split(",") };
     else query.status = "active";
@@ -70,16 +73,32 @@ export const getMyTasks = async (req, res, next) => {
     if (priority) query.priority = { $in: priority.split(",") };
     if (projectId) query.projectId = projectId;
 
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const totalTasks = await Task.countDocuments(query);
     const tasks = await Task.find(query)
       .populate("projectId", "name")
       .populate("assignees", "username email avatar")
       .populate("reporter", "username email avatar")
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     res
       .status(200)
-      .json(new ApiResponse(200, tasks, "My tasks fetched successfully"));
+      .json(new ApiResponse(200, {
+        tasks,
+        pagination: {
+          total: totalTasks,
+          page,
+          limit,
+          totalPages: Math.ceil(totalTasks / limit)
+        }
+      }, "My tasks fetched successfully"));
   } catch (error) {
     next(error);
   }
@@ -91,23 +110,13 @@ export const getTaskById = async (req, res, next) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const task = await Task.findById(id)
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    const task = await Task.findOne({ _id: id, projectId: { $in: accessibleIds } })
       .populate("assignees", "username email avatar")
       .populate("comments.user", "username email avatar");
 
     if (!task) {
-      throw new ApiError(404, "Task not found");
-    }
-
-    const project = await Project.findById(task.projectId);
-    if (!project) {
-      throw new ApiError(404, "Associated project not found");
-    }
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
+      throw new ApiError(404, "Task not found or access denied");
     }
 
     res
@@ -129,20 +138,11 @@ export const addComment = async (req, res, next) => {
       throw new ApiError(400, "Comment text is required");
     }
 
-    const task = await Task.findById(id);
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    const task = await Task.findOne({ _id: id, projectId: { $in: accessibleIds } });
+
     if (!task) {
-      throw new ApiError(404, "Task not found");
-    }
-
-    const project = await Project.findById(task.projectId);
-    if (!project) {
-      throw new ApiError(404, "Associated project not found");
-    }
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
+      throw new ApiError(404, "Task not found or access denied");
     }
 
     task.comments.push({
@@ -150,13 +150,16 @@ export const addComment = async (req, res, next) => {
       user: userId,
     });
 
-    task.activityLog.push({
-      type: "comment_added",
-      actorId: userId,
-      metadata: { preview: text.trim().slice(0, 80) },
-    });
-
     await task.save();
+
+    await logActivity({
+      action: 'COMMENTED',
+      actorId: userId,
+      entityType: 'Task',
+      entityId: task._id,
+      projectId: task.projectId,
+      details: { text: text.trim().slice(0, 80) }
+    });
     await task.populate("comments.user", "username email avatar");
 
     const newComment = task.comments[task.comments.length - 1];
@@ -197,28 +200,20 @@ export const createTask = async (req, res, next) => {
       title,
       content,
       priority,
-      projectId,
       columnId,
       assignees,
       dueDate,
       labels,
     } = req.body;
 
-    if (!title || !projectId || !columnId) {
-      throw new ApiError(400, "title, projectId, and columnId are required");
+    const projectId = req.project._id;
+
+    if (!title || !columnId) {
+      throw new ApiError(400, "title and columnId are required");
     }
 
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new ApiError(404, "Project not found");
-    }
-
-    const userId = req.user.id;
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
-    }
+    const userId = req.user._id.toString();
+    const project = req.project;
 
     const column = project.columns.find((col) => col.id === columnId);
     if (!column) {
@@ -245,6 +240,14 @@ export const createTask = async (req, res, next) => {
           metadata: { columnTitle: column.title },
         },
       ],
+    });
+
+    await logActivity({
+      action: 'CREATED',
+      actorId: userId,
+      entityType: 'Task',
+      entityId: task._id,
+      projectId: task.projectId
     });
 
     // Append task ID to column (only if not in backlog)
@@ -289,20 +292,11 @@ export const updateTask = async (req, res, next) => {
     const userId = req.user.id;
     const updates = req.body;
 
-    const task = await Task.findById(id);
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    const task = await Task.findOne({ _id: id, projectId: { $in: accessibleIds } });
+
     if (!task) {
-      throw new ApiError(404, "Task not found");
-    }
-
-    const project = await Project.findById(task.projectId);
-    if (!project) {
-      throw new ApiError(404, "Associated project not found");
-    }
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
+      throw new ApiError(404, "Task not found or access denied");
     }
 
     const allowedFields = [
@@ -393,8 +387,22 @@ export const updateTask = async (req, res, next) => {
       }
     }
 
-    if (logEntries.length > 0) {
-      task.activityLog.push(...logEntries);
+    // Persist to new log collection
+    for (const log of logEntries) {
+      // Map old types to enum
+      let actionName = 'UPDATED';
+      let eventDetails = log;
+
+      if (log.type === 'moved_column') { actionName = 'MOVED'; }
+
+      await logActivity({
+          action: actionName,
+          actorId: userId,
+          entityType: 'Task',
+          entityId: task._id,
+          projectId: task.projectId,
+          details: log.metadata
+      });
     }
 
     await task.save();
@@ -459,15 +467,14 @@ export const reorderInsideColumn = async (req, res, next) => {
 
     const userId = req.user.id;
 
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    if (!accessibleIds.some(id => id.toString() === projectId)) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
-    }
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
     }
 
     const column = project.columns.find((col) => col.id === columnId);
@@ -538,15 +545,14 @@ export const moveAcrossColumns = async (req, res, next) => {
 
     const userId = req.user.id;
 
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    if (!accessibleIds.some(id => id.toString() === projectId)) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
     const project = await Project.findById(projectId);
     if (!project) {
       throw new ApiError(404, "Project not found");
-    }
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
     }
 
     // Locate columns
@@ -603,15 +609,18 @@ export const moveAcrossColumns = async (req, res, next) => {
       task.status = newStatus;
     }
 
-    task.activityLog.push({
-      type: "moved_column",
+    await logActivity({
+      action: 'MOVED',
       actorId: userId,
-      metadata: {
+      entityType: 'Task',
+      entityId: task._id,
+      projectId: task.projectId,
+      details: {
         from: sourceColumn.title,
         to: destColumn.title,
         fromColumnId: sourceColumnId,
         toColumnId: destinationColumnId,
-      },
+      }
     });
 
     await task.save();
@@ -642,19 +651,15 @@ export const deleteTask = async (req, res, next) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const task = await Task.findById(id);
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    const task = await Task.findOne({ _id: id, projectId: { $in: accessibleIds } });
+
     if (!task) {
-      throw new ApiError(404, "Task not found");
+      throw new ApiError(404, "Task not found or access denied");
     }
 
     const project = await Project.findById(task.projectId);
     if (!project) throw new ApiError(404, "Project not found");
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
-    }
 
     // Remove from column
     const column = project.columns.find((col) => col.id === task.columnId);
@@ -663,7 +668,24 @@ export const deleteTask = async (req, res, next) => {
       await project.save();
     }
 
-    await Task.findByIdAndDelete(id);
+    await Task.findByIdAndUpdate(id, { isArchived: true }, { new: true });
+
+    // Cleanup attachments (Cloudinary)
+    if (task.attachments && task.attachments.length > 0) {
+      for (const att of task.attachments) {
+        if (att.publicId) {
+          await deleteFromCloudinary(att.publicId);
+        }
+      }
+    }
+
+    await logActivity({
+      action: 'ARCHIVED',
+      actorId: userId,
+      entityType: 'Task',
+      entityId: task._id,
+      projectId: task.projectId
+    });
 
     emitToProject(task.projectId.toString(), "task.deleted", {
       taskId: id,

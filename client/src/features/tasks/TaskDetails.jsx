@@ -12,6 +12,7 @@ import {
   useMoveTaskMutation,
 } from "./taskApi";
 import { selectCurrentUser } from "../auth/authSlice";
+import { useGetActivitiesQuery } from "../activities/activityApi";
 import FileUploader from "../../components/ui/FileUploader";
 import {
   X,
@@ -50,7 +51,14 @@ const TaskDetails = ({
   const [moveTask] = useMoveTaskMutation();
   const currentUser = useSelector(selectCurrentUser);
 
+  const { data: activitiesData, isLoading: isActivitiesLoading } =
+    useGetActivitiesQuery(
+      { entityId: taskId, entityType: "Task" },
+      { skip: !taskId || !isOpen },
+    );
+
   const task = data?.data;
+  const activities = activitiesData?.data || [];
 
   // Local state
   const [title, setTitle] = useState("");
@@ -247,11 +255,14 @@ const TaskDetails = ({
                     ))}
                   </div>
                   <FileUploader
+                    usage="task"
                     onUpload={(file) => {
                       const newAtt = {
                         url: file.url,
                         filename: file.filename,
                         size: file.size,
+                        type: file.type,
+                        publicId: file.publicId,
                       };
                       const updated = [...attachments, newAtt];
                       setAttachments(updated);
@@ -470,28 +481,38 @@ const TaskDetails = ({
                     </div>
                   ) : (
                     <div className="space-y-4 pl-4 border-l border-slate-800">
-                      {(task.activityLog || [])
-                        .slice()
-                        .reverse()
-                        .map((log, i) => (
+                      {isActivitiesLoading ? (
+                        <div className="text-xs text-slate-500">Loading history...</div>
+                      ) : (
+                        activities.map((log, i) => (
                           <div key={i} className="relative pb-4 last:pb-0">
                             <div className="absolute -left-[21px] top-1 size-2.5 rounded-full border-2 border-slate-950 bg-slate-700" />
                             <p className="text-sm text-slate-400">
                               <span className="font-semibold text-slate-300">
-                                User
+                                {log.actorId?.username || "System"}
                               </span>{" "}
-                              {log.type.replace(/_/g, " ")}{" "}
+                              {log.action?.toLowerCase()}{" "}
+                              {log.entityType?.toLowerCase()}{" "}
                               <span className="text-xs text-slate-500 ml-2">
                                 {new Date(log.createdAt).toLocaleString()}
                               </span>
                             </p>
-                            {log.metadata && (
-                              <pre className="mt-1 text-xs text-slate-600 font-mono">
-                                {JSON.stringify(log.metadata, null, 2)}
-                              </pre>
+                            {log.details && (
+                              <div className="mt-1 text-xs text-slate-600 bg-slate-900/50 p-2 rounded">
+                                {typeof log.details === 'object' ? (
+                                  Object.entries(log.details).map(([key, value]) => (
+                                    <div key={key}>
+                                      <span className="font-mono text-slate-500">{key}:</span> {String(value)}
+                                    </div>
+                                  ))
+                                ) : (
+                                  log.details
+                                )}
+                              </div>
                             )}
                           </div>
-                        ))}
+                        ))
+                      )}
                     </div>
                   )}
                 </div>

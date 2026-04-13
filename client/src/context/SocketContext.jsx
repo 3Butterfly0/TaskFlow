@@ -1,88 +1,80 @@
-import { createContext, useEffect, useState, useRef } from "react";
+import { createContext, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { io } from "socket.io-client";
+import socket from "../app/socket";
 import { selectCurrentUser } from "../features/auth/authSlice";
 
 export const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const user = useSelector(selectCurrentUser);
-  const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState(null);
 
   // Track online users by room (projectId -> list of userIds)
-  // Or simpler: just track presence updates.
-  // The backend sends { projectId, onlineUsers: [] } on "presence.update"
-  // We can store this in a map: projectId -> userIds[]
   const [onlineUsersMap, setOnlineUsersMap] = useState({});
 
   useEffect(() => {
     // Only connect if user is logged in
     if (!user) {
-      if (socket) {
+      if (socket.connected) {
         socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
       }
+      setIsConnected(false);
       return;
     }
 
-    // Initialize socket
-    // In dev: proxy handles /api, but socket.io client might need explicit URL if on different port
-    // Vite proxy usually handles ws too if configured, but let's see.
-    // If backend is on 5000 and frontend on 5173.
-    // Best practice: allow url from env or relative if proxy.
-    // The backend initializes socket on the same HTTP server as Express.
-    const socketUrl = import.meta.env.VITE_API_URL || "/";
-    // Wait, if VITE_API_URL is defined (e.g. http://localhost:5000/api), we need the root http://localhost:5000
-    // But usually socket.io client auto-connects to window.location if no url provided, or relative path.
-    // Let's try relative path "/" with options.transports if needed.
-
-    // Actually, backend cors origin is set to client url.
-    // If we rely on proxy, we connect to "/" (dev server), which proxies to backend.
-
-    const newSocket = io("/", {
-      path: "/socket.io", // Default
-      reconnectionAttempts: 5,
-      // Sending credentials for handshake if needed (cookies are sent automatically by browser if withCredentials is true, usually)
-      withCredentials: true,
-      autoConnect: true,
-    });
-
-    setSocket(newSocket);
+    // Connect if not already connected
+    if (!socket.connected) {
+      socket.connect();
+    }
 
     // Connection events
-    newSocket.on("connect", () => {
+    const onConnect = () => {
       setIsConnected(true);
+      setError(null);
       // Authenticate
-      newSocket.emit("setup");
-    });
+      socket.emit("setup");
+    };
 
-    newSocket.on("disconnect", () => {
+    const onDisconnect = (reason) => {
       setIsConnected(false);
-    });
+      if (reason === "io server disconnect") {
+        // Disconnect was initiated by server (maybe auth fail)
+        setError("Disconnected by server");
+      }
+    };
 
-    newSocket.on("connect_error", (err) => {
-      // Handle connection error quietly or display notification
-    });
+    const onConnectError = (err) => {
+      setError(err.message);
+    };
 
-    // Global Presence Listener
-    // The backend broadcasts "presence.update" to rooms.
-    // So we only get updates for projects we've joined via "join-project".
-    newSocket.on("presence.update", ({ projectId, onlineUsers }) => {
+    const onPresenceUpdate = ({ projectId, onlineUsers }) => {
       setOnlineUsersMap((prev) => ({
         ...prev,
         [projectId]: onlineUsers,
       }));
-    });
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
+    socket.on("presence.update", onPresenceUpdate);
+
+    // Initial state check
+    if (socket.connected) {
+      onConnect();
+    }
 
     return () => {
-      newSocket.disconnect();
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
+      socket.off("presence.update", onPresenceUpdate);
     };
   }, [user?._id]); // Re-connect if user changes
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, onlineUsersMap }}>
+    <SocketContext.Provider value={{ socket, isConnected, onlineUsersMap, error }}>
       {children}
     </SocketContext.Provider>
   );

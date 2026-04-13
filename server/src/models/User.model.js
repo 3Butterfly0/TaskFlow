@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
@@ -25,8 +26,17 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      minlength: [6, "Password must be at least 6 characters"],
-      select: false, // Never return password by default
+      minlength: [8, "Password must be at least 8 characters"],
+      validate: {
+        validator: function (v) {
+          // Only validate if password is being set/changed
+          if (!this.isModified("password")) return true;
+          return /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(v);
+        },
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+      },
+      select: false, // never return password by default
       required: [
         function () {
           return !this.googleId;
@@ -96,19 +106,44 @@ const userSchema = new mongoose.Schema(
         },
       },
     ],
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+
+    // Security
+    loginAttempts: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    lockUntil: {
+      type: Date,
+    },
   },
   {
-    timestamps: true, // createdAt, updatedAt
+    timestamps: true,
   },
 );
 
-// `email` index is already created by { unique: true } at the field level.
-// `googleId` needs an explicit sparse index for optional Google OAuth lookups.
 userSchema.index({ googleId: 1 }, { sparse: true });
 
-// Pre-save: hash password
+userSchema.methods.getResetPasswordToken = function () {
+  // generate token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+  // hash token and set to resetPasswordToken field
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Set expire (10 minutes)
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+};
+
+// pre-save: hash password
 userSchema.pre("save", async function (next) {
-  // Only hash if password field was modified
+  // only hash if password field was modified
   if (!this.isModified("password")) return next();
 
   const salt = await bcrypt.genSalt(12);

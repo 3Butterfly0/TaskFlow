@@ -5,42 +5,27 @@ import ApiResponse from "../utils/ApiResponse.js";
 
 export const getProjectAnalytics = async (req, res, next) => {
   try {
-    const { projectId } = req.params;
     const { scope } = req.query; // "all" or "me"
-    const userId = req.user.id;
+    const userId = req.user._id.toString();
+    const project = req.project;
 
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new ApiError(404, "Project not found");
+    const hasAllAccess = req.userRole === "admin";
+    const projectId = project._id;
+
+    // Build the initial query scoped by project
+    const taskQuery = { projectId };
+
+    // Enforce role-based scoping
+    if (!hasAllAccess) {
+      // Regular members can ONLY see their assigned tasks
+      taskQuery.assignees = userId;
+    } else if (scope === "me") {
+      // Admins CAN choose to see only their own tasks
+      taskQuery.assignees = userId;
     }
 
-    const isOwner = project.owner.toString() === userId;
-    const isAdmin = project.roles.some(
-      (r) => r.userId.toString() === userId && r.role === "admin",
-    );
-    const hasAllAccess = isOwner || isAdmin;
-
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
-    }
-
-    // Determine target scope
-    // Default: 'all' for owner/admin, 'me' for regular members
-    let targetScope = scope || (hasAllAccess ? "all" : "me");
-    if (targetScope === "all" && !hasAllAccess) {
-      targetScope = "me";
-    }
-
-    const allTasks = await Task.find({ projectId }).lean();
-
-    // Filter tasks based on scope
-    const tasks =
-      targetScope === "me"
-        ? allTasks.filter((t) =>
-            t.assignees?.some((id) => id.toString() === userId),
-          )
-        : allTasks;
+    const tasks = await Task.find(taskQuery).lean();
+    const allTasks = hasAllAccess ? tasks : await Task.find({ projectId }).lean(); // allTasks needed for member performance if admin
 
     // Aggregation logic
 
@@ -166,7 +151,7 @@ export const getProjectAnalytics = async (req, res, next) => {
     };
 
     const analytics = {
-      scope: targetScope,
+      scope: hasAllAccess && scope !== "me" ? "all" : "me",
       hasAllAccess,
       summary: {
         totalTasks: tasks.length,
@@ -193,7 +178,7 @@ export const getProjectAnalytics = async (req, res, next) => {
       })),
       byAssignee: tasksByAssignee, // { userId: count }
       perMemberPerformance:
-        hasAllAccess && targetScope === "all"
+        hasAllAccess && scope !== "me"
           ? formatMemberPerformance()
           : null,
     };

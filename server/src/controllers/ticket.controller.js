@@ -5,23 +5,14 @@ import Project from "../models/Project.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { emitToProject } from "../config/socket.js";
+import { logActivity } from "../utils/activityLogger.js";
 
 // POST /api/tickets
 export const createTicket = async (req, res, next) => {
   try {
-    const { subject, description, severity, projectId } = req.body;
-
-    if (!subject || !description || !projectId) {
-      throw new ApiError(
-        400,
-        "subject, description, and projectId are required",
-      );
-    }
-
-    const project = await Project.findById(projectId);
-    if (!project) {
-      throw new ApiError(404, "Project not found");
-    }
+    const { subject, description, severity } = req.body;
+    const projectId = req.project._id;
+    const project = req.project;
 
     const ticket = await Ticket.create({
       subject,
@@ -29,6 +20,14 @@ export const createTicket = async (req, res, next) => {
       severity,
       projectId,
       reporter: req.user.id,
+    });
+
+    await logActivity({
+      action: 'CREATED',
+      actorId: req.user.id,
+      entityType: 'Ticket',
+      entityId: ticket._id,
+      projectId: ticket.projectId
     });
 
     await ticket.populate("reporter", "username email avatar");
@@ -46,25 +45,39 @@ export const createTicket = async (req, res, next) => {
 // GET /api/tickets?projectId=xxx&status=open&severity=blocking
 export const getTickets = async (req, res, next) => {
   try {
-    const { projectId, status, severity } = req.query;
+    const projectId = req.project._id;
+    const { status, severity } = req.query;
 
-    if (!projectId) {
-      throw new ApiError(400, "projectId query parameter is required");
-    }
-
-    const filter = { projectId };
+    const showArchived = req.query.isArchived === 'true';
+    const filter = { projectId, isArchived: showArchived };
     if (status) filter.status = status;
     if (severity) filter.severity = severity;
 
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const totalTickets = await Ticket.countDocuments(filter);
     const tickets = await Ticket.find(filter)
       .populate("reporter", "username email avatar")
       .populate("triagedBy", "username email avatar")
       .populate("linkedTaskId", "title columnId priority")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res
       .status(200)
-      .json(new ApiResponse(200, tickets, "Tickets fetched successfully"));
+      .json(new ApiResponse(200, {
+        tickets,
+        pagination: {
+          total: totalTickets,
+          page,
+          limit,
+          totalPages: Math.ceil(totalTickets / limit)
+        }
+      }, "Tickets fetched successfully"));
   } catch (error) {
     next(error);
   }
@@ -101,15 +114,14 @@ export const promoteToTask = async (req, res, next) => {
       );
     }
 
+    const accessibleIds = await Project.getAccessibleIds(userId);
+    if (!accessibleIds.some(pid => pid.toString() === projectId)) {
+      throw new ApiError(403, "You do not have access to this project");
+    }
+
     const project = await Project.findById(projectId).session(session);
     if (!project) {
       throw new ApiError(404, "Project not found");
-    }
-
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m.toString() === userId);
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
     }
 
     const column = project.columns.find((col) => col.id === columnId);

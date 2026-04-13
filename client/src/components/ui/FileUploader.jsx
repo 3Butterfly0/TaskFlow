@@ -2,31 +2,45 @@ import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useUploadFileMutation } from "../../features/upload/uploadApi";
 
-const FileUploader = ({ onUpload, disabled }) => {
+const FileUploader = ({ onUpload, disabled, usage = "task" }) => {
   const [uploadFile, { isLoading }] = useUploadFileMutation();
 
   const onDrop = useCallback(
-    async (acceptedFiles) => {
+    async (acceptedFiles, rejectedFiles) => {
+      if (rejectedFiles && rejectedFiles.length > 0) {
+        const error = rejectedFiles[0].errors[0];
+        alert(`File rejected: ${error.message}`);
+        return;
+      }
+
       const file = acceptedFiles[0];
       if (!file) return;
 
       try {
-        const response = await uploadFile(file).unwrap();
+        const response = await uploadFile({ file, usage }).unwrap();
         if (response.data) {
           onUpload(response.data);
         }
-      } catch {
-        // Error is handled by global error handler usually, but show local error if needed?
-        // For now, console error.
+      } catch (err) {
+        const msg = err.data?.message || "Upload failed";
+        alert(msg);
       }
     },
-    [uploadFile, onUpload],
+    [uploadFile, onUpload, usage],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     disabled: disabled || isLoading,
-    multiple: false, // Single file for now, simple
+    multiple: false,
+    maxSize: 5 * 1024 * 1024,
+    accept: {
+      "image/*": [".jpeg", ".png", ".webp", ".gif"],
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "text/plain": [".txt"],
+    },
   });
 
   return (

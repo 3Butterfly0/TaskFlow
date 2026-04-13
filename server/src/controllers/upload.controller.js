@@ -9,10 +9,22 @@ export const uploadFile = async (req, res, next) => {
       throw new ApiError(400, "No file uploaded");
     }
 
+    // Determine folder based on usage
+    const { usage } = req.body;
+    let folder = "taskflow/general";
+    
+    if (usage === "avatar") {
+      folder = "taskflow/avatars";
+    } else if (usage === "task") {
+      folder = "taskflow/tasks";
+    } else if (usage === "ticket") {
+      folder = "taskflow/tickets";
+    }
+
     // Call Cloudinary service
     const result = await uploadToCloudinary(
       req.file.buffer,
-      "taskflow_uploads",
+      folder,
     );
 
     const response = {
@@ -21,6 +33,7 @@ export const uploadFile = async (req, res, next) => {
       format: result.format,
       publicId: result.public_id,
       size: result.bytes,
+      type: req.file.mimetype,
     };
 
     res

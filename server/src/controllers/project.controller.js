@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Project from "../models/Project.model.js";
 import Task from "../models/Task.model.js";
 import User from "../models/User.model.js";
@@ -6,9 +7,13 @@ import { Invitation } from "../models/Invitation.model.js";
 import Notification from "../models/Notification.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
+import { logActivity } from "../utils/activityLogger.js";
 
 // POST /api/projects
 export const createProject = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
     const { name, description, visibility } = req.body;
 
@@ -16,13 +21,22 @@ export const createProject = async (req, res, next) => {
       throw new ApiError(400, "Project name is required");
     }
 
-    const project = await Project.create({
+    const [project] = await Project.create([{
       name,
       description,
       visibility,
       owner: req.user.id,
       createdBy: req.user.id,
       members: [req.user.id],
+    }], { session });
+
+    await logActivity({
+      action: 'CREATED',
+      actorId: req.user.id,
+      entityType: 'Project',
+      entityId: project._id,
+      projectId: project._id,
+      // Pass details if you need it, but the schema doesn't strictly log session so we rely on the main commit success
     });
 
     await project.populate([
@@ -30,11 +44,16 @@ export const createProject = async (req, res, next) => {
       { path: "members", select: "username email avatar" },
     ]);
 
+    await session.commitTransaction();
+
     res
       .status(201)
       .json(new ApiResponse(201, project, "Project created successfully"));
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
@@ -45,7 +64,7 @@ export const getProjects = async (req, res, next) => {
 
     const projects = await Project.find({
       $or: [{ owner: userId }, { members: userId }],
-      archived: false,
+      isArchived: false,
     })
       .populate("owner", "username email avatar")
       .populate("members", "username email avatar")
@@ -62,23 +81,10 @@ export const getProjects = async (req, res, next) => {
 // GET /api/projects/:id
 export const getProjectById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const project = await Project.findById(id)
-      .populate("owner", "username email avatar")
-      .populate("members", "username email avatar");
-
-    if (!project) {
-      throw new ApiError(404, "Project not found");
-    }
-
-    const isOwner = project.owner._id.toString() === userId;
-    const isMember = project.members.some((m) => m._id.toString() === userId);
-
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
-    }
+    const project = await req.project.populate([
+      { path: "owner", select: "username email avatar" },
+      { path: "members", select: "username email avatar" }
+    ]);
 
     res
       .status(200)
@@ -91,20 +97,10 @@ export const getProjectById = async (req, res, next) => {
 // GET /api/projects/:id/members
 export const getProjectMembers = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const project = await Project.findById(id).populate(
+    const project = await req.project.populate(
       "members",
       "username email avatar",
     );
-    if (!project) throw new ApiError(404, "Project not found");
-
-    const userId = req.user.id;
-    const isOwner = project.owner.toString() === userId;
-    const isMember = project.members.some((m) => m._id.toString() === userId);
-
-    if (!isOwner && !isMember) {
-      throw new ApiError(403, "You do not have access to this project");
-    }
 
     res
       .status(200)
@@ -119,30 +115,33 @@ export const getProjectMembers = async (req, res, next) => {
 // DELETE /api/projects/:id
 export const deleteProject = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const project = await Project.findById(id);
-
-    if (!project) {
-      throw new ApiError(404, "Project not found");
-    }
+    const project = req.project;
+    const projectId = project._id;
+    const userId = req.user._id.toString();
 
     if (project.owner.toString() !== userId) {
       throw new ApiError(403, "Only the project owner can delete this project");
     }
 
-    // Cascade delete all related records
-    await Task.deleteMany({ projectId: id });
-    await Ticket.deleteMany({ projectId: id });
-    await Invitation.deleteMany({ projectId: id });
-    await Notification.deleteMany({ resourceId: id, resourceType: "Project" });
+    // Cascade soft-delete all related records
+    await Task.updateMany({ projectId }, { isArchived: true });
+    await Ticket.updateMany({ projectId }, { isArchived: true });
+    await Invitation.deleteMany({ projectId });
+    await Notification.deleteMany({ resourceId: projectId, resourceType: "Project" });
 
-    await Project.findByIdAndDelete(id);
+    await Project.findByIdAndUpdate(projectId, { isArchived: true }, { new: true });
+
+    await logActivity({
+      action: 'ARCHIVED',
+      actorId: req.user.id,
+      entityType: 'Project',
+      entityId: projectId,
+      projectId: projectId
+    });
 
     res
       .status(200)
-      .json(new ApiResponse(200, { id }, "Project deleted successfully"));
+      .json(new ApiResponse(200, { id: projectId }, "Project deleted successfully"));
   } catch (error) {
     next(error);
   }
@@ -151,14 +150,11 @@ export const deleteProject = async (req, res, next) => {
 // POST /api/projects/:id/pin
 export const togglePinProject = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
+    const project = req.project;
+    const userId = req.user._id.toString();
 
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
-
-    const user = await User.findById(userId);
-    const isPinned = user.pinnedProjects.includes(id);
+    const user = req.user;
+    const isPinned = user.pinnedProjects.includes(project._id);
 
     if (isPinned) {
       user.pinnedProjects = user.pinnedProjects.filter(
@@ -183,11 +179,8 @@ export const togglePinProject = async (req, res, next) => {
 // POST /api/projects/:id/access
 export const updateLastAccessed = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
+    const project = req.project;
+    const userId = req.user._id.toString();
 
     await User.findByIdAndUpdate(userId, {
       $pull: { lastAccessedProjects: { projectId: id } },
@@ -208,30 +201,16 @@ export const updateLastAccessed = async (req, res, next) => {
   }
 };
 
-// POST /api/projects/:id/columns
 export const addColumn = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const project = req.project;
     const { title } = req.body;
 
-    if (!title) {
-      throw new ApiError(400, "Column title is required");
-    }
-
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
-
-    const isOwner = project.owner.toString() === req.user.id;
-    const isMember = project.members.some((m) => m.toString() === req.user.id);
-    const userRole =
-      project.roles?.find((r) => r.userId.toString() === req.user.id)?.role ||
-      (isOwner ? "admin" : isMember ? "member" : null);
-
-    if (userRole !== "admin") {
+    if (req.userRole !== "admin") {
       throw new ApiError(403, "Only admins/owners can manage columns");
     }
 
-    project.columns.push({ title, taskIds: [] });
+    project.columns.push({ title: title.trim(), taskIds: [] });
     await project.save();
 
     const newColumn = project.columns[project.columns.length - 1];
@@ -254,16 +233,9 @@ export const renameColumn = async (req, res, next) => {
       throw new ApiError(400, "New column title is required");
     }
 
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
+    const project = req.project;
 
-    const isOwner = project.owner.toString() === req.user.id;
-    const isMember = project.members.some((m) => m.toString() === req.user.id);
-    const userRole =
-      project.roles?.find((r) => r.userId.toString() === req.user.id)?.role ||
-      (isOwner ? "admin" : isMember ? "member" : null);
-
-    if (userRole !== "admin") {
+    if (req.userRole !== "admin") {
       throw new ApiError(403, "Only admins/owners can manage columns");
     }
 
@@ -288,16 +260,9 @@ export const deleteColumn = async (req, res, next) => {
   try {
     const { id, columnId } = req.params;
 
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
+    const project = req.project;
 
-    const isOwner = project.owner.toString() === req.user.id;
-    const isMember = project.members.some((m) => m.toString() === req.user.id);
-    const userRole =
-      project.roles?.find((r) => r.userId.toString() === req.user.id)?.role ||
-      (isOwner ? "admin" : isMember ? "member" : null);
-
-    if (userRole !== "admin") {
+    if (req.userRole !== "admin") {
       throw new ApiError(403, "Only admins/owners can manage columns");
     }
 
@@ -335,12 +300,8 @@ export const deleteColumn = async (req, res, next) => {
 // PATCH /api/projects/:id
 export const updateProject = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { name, description, visibility } = req.body;
-    const userId = req.user.id;
-
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
+    const project = req.project;
+    const userId = req.user._id.toString();
 
     if (project.owner.toString() !== userId) {
       throw new ApiError(403, "Only the project owner can update this project");
@@ -363,12 +324,8 @@ export const updateProject = async (req, res, next) => {
 // PATCH /api/projects/:id/transfer
 export const transferOwnership = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { newOwnerId } = req.body;
-    const userId = req.user.id;
-
-    const project = await Project.findById(id);
-    if (!project) throw new ApiError(404, "Project not found");
+    const project = req.project;
+    const userId = req.user._id.toString();
 
     if (project.owner.toString() !== userId) {
       throw new ApiError(403, "Only the current owner can transfer ownership");
