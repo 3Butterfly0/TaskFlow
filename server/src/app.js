@@ -91,6 +91,7 @@ const globalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "test",
 });
 app.use("/api", globalLimiter);
 
@@ -104,6 +105,7 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "test",
 });
 
 // Health check endpoint
