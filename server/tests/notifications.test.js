@@ -15,16 +15,26 @@ describe('Notification Endpoints', () => {
     const loginRes = await request(app)
       .post('/api/auth/login')
       .send({ email: userData.email, password: userData.password });
-    token = loginRes.body.data.accessToken;
+    token = loginRes.header['set-cookie'];
+  });
+
+  it('should return 401 when not authenticated', async () => {
+    const res = await request(app).get('/api/notifications');
+    expect(res.statusCode).toBe(401);
+    expect(res.body.success).toBe(false);
   });
 
   it('should get notifications for user', async () => {
     const res = await request(app)
       .get('/api/notifications')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', token);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data).toHaveProperty('notifications');
+    expect(Array.isArray(res.body.data.notifications)).toBe(true);
+    expect(res.body.data).toHaveProperty('unreadCount');
+    expect(typeof res.body.data.unreadCount).toBe('number');
+    expect(res.body.data).toHaveProperty('pagination');
   });
 });

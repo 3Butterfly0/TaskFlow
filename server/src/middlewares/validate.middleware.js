@@ -15,7 +15,7 @@ export const validate = (schema) => (req, res, next) => {
             ? issues.map((err) => `${err.path[err.path.length - 1]}: ${err.message}`)
             : [error.message || 'Unknown validation error'];
 
-        if (process.env.NODE_ENV === 'test') {
+        if (process.env.TEST_DEBUG_VALIDATION === 'true') {
             console.error('Validation Error Details:', {
                 message: error.message,
                 issues: issues,

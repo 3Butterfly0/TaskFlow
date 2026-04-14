@@ -16,13 +16,13 @@ describe('Project Endpoints', () => {
     const loginRes = await request(app)
       .post('/api/auth/login')
       .send({ email: userData.email, password: userData.password });
-    token = loginRes.body.data.accessToken;
+    token = loginRes.header['set-cookie'];
   });
 
   it('should create a new project', async () => {
     const res = await request(app)
       .post('/api/projects')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({
         name: 'Test Project',
         description: 'Test Description'
@@ -36,12 +36,12 @@ describe('Project Endpoints', () => {
   it('should get all projects for user', async () => {
     await request(app)
       .post('/api/projects')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', token)
       .send({ name: 'Project 1' });
 
     const res = await request(app)
       .get('/api/projects')
-      .set('Authorization', `Bearer ${token}`);
+      .set('Cookie', token);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);

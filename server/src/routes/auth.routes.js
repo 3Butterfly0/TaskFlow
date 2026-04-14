@@ -5,7 +5,6 @@ import {
   logout,
   getMe,
   updateProfile,
-  changePassword,
   setupMfa,
   verifyMfa,
   disableMfa,
@@ -25,7 +24,6 @@ router.post("/mfa/validate", validateMfa);
 // Protected routes
 router.get("/me", protect, getMe);
 router.patch("/profile", protect, updateProfile);
-router.patch("/password", protect, changePassword);
 
 // MFA Routes
 router.post("/mfa/setup", protect, setupMfa);
