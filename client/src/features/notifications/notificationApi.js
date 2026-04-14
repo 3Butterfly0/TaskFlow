@@ -7,14 +7,26 @@ export const notificationApi = baseApi.injectEndpoints({
         url: "/notifications",
         params,
       }),
-      providesTags: ["Notification"],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.notifications.map(({ _id }) => ({
+                type: "Notification",
+                id: _id,
+              })),
+              { type: "Notification", id: "LIST" },
+            ]
+          : [{ type: "Notification", id: "LIST" }],
     }),
     markAsRead: builder.mutation({
       query: (id) => ({
         url: `/notifications/${id}/read`,
         method: "PATCH",
       }),
-      invalidatesTags: ["Notification"],
+      invalidatesTags: (result, error, id) => [
+        { type: "Notification", id },
+        { type: "Notification", id: "LIST" },
+      ],
     }),
   }),
 });

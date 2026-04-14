@@ -12,16 +12,37 @@ const NotificationBell = () => {
   const { socket } = useSocket();
   const user = useSelector(selectCurrentUser);
   const dropdownRef = useRef(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [allNotifications, setAllNotifications] = useState([]);
 
-  const { data: notifData, refetch } = useGetNotificationsQuery({
-    page: 1,
+  const {
+    data: notifData,
+    refetch,
+    isFetching,
+  } = useGetNotificationsQuery({
+    page,
     limit: 10,
   });
   const [markAsRead] = useMarkAsReadMutation();
 
-  const notifications = notifData?.data?.notifications || [];
   const unreadCount = notifData?.data?.unreadCount || 0;
+  const hasNextPage = notifData?.data?.pagination?.hasNextPage;
+
+  useEffect(() => {
+    if (notifData?.data?.notifications) {
+      if (page === 1) {
+        setAllNotifications(notifData.data.notifications);
+      } else {
+        setAllNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n._id));
+          const newNotifs = notifData.data.notifications.filter(
+            (n) => !existingIds.has(n._id),
+          );
+          return [...prev, ...newNotifs];
+        });
+      }
+    }
+  }, [notifData, page]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -37,7 +58,11 @@ const NotificationBell = () => {
     if (!socket) return;
 
     const handleNotification = () => {
-      refetch();
+      if (page === 1) {
+        refetch();
+      } else {
+        setPage(1); // Reset to page 1 to see new notifs
+      }
     };
 
     socket.on("comment.added", handleNotification);
@@ -53,12 +78,11 @@ const NotificationBell = () => {
       socket.off("status", handleNotification);
       socket.off("notification", handleNotification);
     };
-  }, [socket, refetch]);
+  }, [socket, refetch, page]);
 
   const handleMarkAsRead = async (id, link) => {
     try {
       await markAsRead(id).unwrap();
-      setIsOpen(false);
     } catch {
       // Error handled by redux
     }
@@ -66,6 +90,14 @@ const NotificationBell = () => {
 
   const handleMarkAllRead = async () => {
     await markAsRead("all");
+    setPage(1);
+  };
+
+  const handleLoadMore = (e) => {
+    e.stopPropagation();
+    if (hasNextPage && !isFetching) {
+      setPage((prev) => prev + 1);
+    }
   };
 
   return (
@@ -97,7 +129,12 @@ const NotificationBell = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-xl border border-slate-800 bg-slate-950 shadow-2xl ring-1 ring-black/5 focus:outline-none z-50">
           <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-            <h3 className="text-sm font-semibold text-white">Notifications</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-white">Notifications</h3>
+              {isFetching && (
+                <div className="size-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              )}
+            </div>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
@@ -109,42 +146,56 @@ const NotificationBell = () => {
           </div>
 
           <div className="max-h-80 overflow-y-auto py-2">
-            {notifications.length === 0 ? (
+            {allNotifications.length === 0 ? (
               <div className="px-4 py-6 text-center text-sm text-slate-500">
-                No new notifications
+                No notifications yet
               </div>
             ) : (
-              notifications.map((notif) => {
-                let link = "#";
-                if (notif.resourceType === "Task") {
-                  link = `/issues?q=${notif.resourceId}`;
-                }
+              <>
+                {allNotifications.map((notif) => {
+                  let link = "#";
+                  if (notif.resourceType === "Task") {
+                    link = `/issues?q=${notif.resourceId}`;
+                  }
 
-                return (
-                  <div
-                    key={notif._id}
-                    className={`border-b border-slate-800/50 px-4 py-3 last:border-0 hover:bg-slate-800/30 transition-colors ${!notif.isRead ? "bg-slate-900/40 border-l-2 border-l-indigo-500" : ""}`}
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <p className="text-sm text-slate-300">{notif.message}</p>
-                      {!notif.isRead && (
-                        <button
-                          onClick={() => handleMarkAsRead(notif._id)}
-                          className="text-[10px] text-indigo-400 hover:underline shrink-0"
-                        >
-                          Mark read
-                        </button>
-                      )}
+                  return (
+                    <div
+                      key={notif._id}
+                      className={`border-b border-slate-800/50 px-4 py-3 last:border-0 hover:bg-slate-800/30 transition-colors ${!notif.isRead ? "bg-slate-900/40 border-l-2 border-l-indigo-500" : ""}`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="text-sm text-slate-300">{notif.message}</p>
+                        {!notif.isRead && (
+                          <button
+                            onClick={() => handleMarkAsRead(notif._id)}
+                            className="text-[10px] text-indigo-400 hover:underline shrink-0"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {new Date(notif.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {new Date(notif.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                  );
+                })}
+
+                {hasNextPage && (
+                  <div className="px-4 py-2 text-center">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={isFetching}
+                      className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+                    >
+                      {isFetching ? "Loading..." : "Load more"}
+                    </button>
                   </div>
-                );
-              })
+                )}
+              </>
             )}
           </div>
         </div>

@@ -30,6 +30,7 @@ export const getNotifications = async (req, res, next) => {
             page: Number(page),
             limit: Number(limit),
             total,
+            hasNextPage: Number(page) * Number(limit) < total,
           },
           unreadCount,
         },
