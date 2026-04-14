@@ -28,11 +28,6 @@ jobs:
 
   server-test:
     runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
@@ -43,12 +38,15 @@ jobs:
           node-version: 20
           cache: 'pnpm'
           cache-dependency-path: server/pnpm-lock.yaml
+      - name: Cache MongoDB binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-6.0.4
       - name: Install dependencies
         run: cd server && pnpm install
       - name: Run Tests
         env:
           JWT_SECRET: test-secret
           NODE_ENV: test
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
         run: cd server && pnpm run test:ci
